@@ -32,7 +32,7 @@
       <!-- Activated by OS -->
       <activation>
         <os>
-          <family>window</family>
+          <family>windows</family>
           <arch>x86_64</arch>
         </os>
       </activation>
