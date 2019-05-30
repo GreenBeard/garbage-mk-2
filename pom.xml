@@ -44,8 +44,21 @@
       </properties>
     </profile>
   </profiles>
+  
+  <properties>
+    <maven.compiler.source>1.8</maven.compiler.source>
+    <maven.compiler.target>1.8</maven.compiler.target>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+  </properties>
 
   <dependencies>
+    <dependency>
+      <groupId>junit</groupId>
+      <artifactId>junit</artifactId>
+      <version>4.11</version>
+      <scope>test</scope>
+    </dependency>
+    <!-- LWJGL start -->
     <dependency>
       <groupId>org.lwjgl</groupId>
       <artifactId>lwjgl</artifactId>
@@ -406,6 +419,7 @@
       <version>${lwjgl.version}</version>
       <classifier>${lwjgl.natives}</classifier>
     </dependency>
+    <!-- LWJGL end -->
     <dependency>
       <groupId>com.code-disaster.steamworks4j</groupId>
       <artifactId>steamworks4j</artifactId>
