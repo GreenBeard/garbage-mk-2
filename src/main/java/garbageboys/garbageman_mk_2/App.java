@@ -9,7 +9,7 @@ import java.nio.*;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
-import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL33C.*;
 import static org.lwjgl.system.MemoryStack.*;
 import static org.lwjgl.system.MemoryUtil.*;
 
@@ -22,7 +22,7 @@ public class App {
 		System.out.println("Hello LWJGL " + Version.getVersion() + "!");
 
 		init();
-		loop();
+		game_loop_start();
 
 		// Free the window callbacks and destroy the window
 		glfwFreeCallbacks(window);
@@ -34,6 +34,8 @@ public class App {
 	}
 
 	private void init() {
+		Configuration.DEBUG.set(true);
+		
 		// Setup an error callback. The default implementation
 		// will print the error message in System.err.
 		GLFWErrorCallback.createPrint(System.err).set();
@@ -47,6 +49,10 @@ public class App {
 		glfwDefaultWindowHints(); // optional, the current window hints are already the default
 		glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE); // the window will stay hidden after creation
 		glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE); // the window will be resizable
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 		// Create the window
 		window = glfwCreateWindow(1600, 900, "Hello World!", NULL, NULL);
@@ -88,8 +94,69 @@ public class App {
 		// Make the window visible
 		glfwShowWindow(window);
 	}
+	
+	int create_gl_shader(String source, int type) {
+		int shader_id = glCreateShader(type);
+		MemoryStack stack = stackPush();
+		glShaderSource(shader_id, source);
+		glCompileShader(shader_id);
+		
+		IntBuffer result = stack.mallocInt(1);
+		glGetShaderiv(shader_id, GL_COMPILE_STATUS, result);
+		
+		if (result.get(0) == GL_FALSE) {
+			String log = glGetShaderInfoLog(shader_id);
+			System.out.println("Error compiling shader: " + log);
+			
+			// Technically bad style
+			System.exit(1);
+		}
+		stack.pop();
+		
+		return shader_id;
+	}
+	
+	int create_gl_program(String vertex_src, String fragment_src) {
+		int program_id = glCreateProgram();
+		
+		int vertex_id = create_gl_shader(vertex_src, GL_VERTEX_SHADER);
+		int fragment_id = create_gl_shader(fragment_src, GL_FRAGMENT_SHADER);
+		
+		glAttachShader(program_id, vertex_id);
+		glAttachShader(program_id, fragment_id);
+		glLinkProgram(program_id);
+		glValidateProgram(program_id);
+		
+		MemoryStack stack = stackPush();
+		
+		IntBuffer validate_status = stack.mallocInt(1);
+		glGetProgramiv(program_id, GL_VALIDATE_STATUS, validate_status);
+		if (validate_status.get(0) == GL_FALSE) {
+			String log = glGetProgramInfoLog(program_id);
+			System.out.println("Error validating program: " + log);
+			
+			// Technically bad style
+			System.exit(1);
+		}
+		
+		// Mark for deletion when no longer in use
+		glDeleteShader(vertex_id);
+		glDeleteShader(fragment_id);
+		
+		stack.pop();
+		
+		return program_id;
+	}
+	
+	void check_gl_errors() {
+		int error;
+		while ((error = glGetError()) != GL_NO_ERROR) {
+			System.out.println("OpenGL error code: " + error);
+			new Exception().printStackTrace();
+		}
+	}
 
-	private void loop() {
+	private void game_loop_start() {
 		// This line is critical for LWJGL's interoperation with GLFW's
 		// OpenGL context, or any context that is managed externally.
 		// LWJGL detects the context that is current in the current thread,
@@ -97,20 +164,70 @@ public class App {
 		// bindings available for use.
 		GL.createCapabilities();
 
+		System.out.println("OpenGL version: " + glGetString(GL_VERSION));
+		System.out.println("       device: " + glGetString(GL_RENDERER));
+
 		// Set the clear color
-		glClearColor(1.0f, 0.0f, 0.0f, 0.0f);
+		glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
+		
+		// Enable depth test
+		glEnable(GL_DEPTH_TEST);
+		// Accept fragment if it closer to the camera than the former one
+		glDepthFunc(GL_LESS);
+
+		String vertex_src = ResourceLoader.LoadShader("/shaders/vertex_shader.glsl");
+		String fragment_src = ResourceLoader.LoadShader("/shaders/fragment_shader.glsl");
+		int program_id = create_gl_program(vertex_src, fragment_src);
+		
+		MemoryStack stack = stackPush();
+
+		float[] raw_triangle_data = {
+			/* Triangle one */
+			-0.5f, -0.5f, -0.8f,
+			0.0f, 0.5f, -0.8f,
+			0.5f, -0.5f, -0.8f,
+			/* Triangle two */
+			-0.75f, -0.75f, 0.0f,
+			-0.25f, 0.0f, 0.0f,
+			0.25f, -0.75f, 0.0f
+		};
+		
+		IntBuffer vao = stack.mallocInt(1);
+		glGenVertexArrays(vao);
+		glBindVertexArray(vao.get(0));
+		glEnableVertexAttribArray(0);
+		
+		IntBuffer vbo = stack.mallocInt(1);
+		glGenBuffers(vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo.get(0));
+		
+		/*FloatBuffer triangle_data = BufferUtils.createFloatBuffer(3 * 3);
+		triangle_data.put(raw_triangle_data);
+		// Will not work without following line
+		triangle_data.rewind();
+		glBufferData(GL_ARRAY_BUFFER, triangle_data, GL_STATIC_DRAW);*/
+		
+		glBufferData(GL_ARRAY_BUFFER, raw_triangle_data, GL_STATIC_DRAW);
+		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
 
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
 		while (!glfwWindowShouldClose(window)) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
 
+			glUseProgram(program_id);
+			glDrawArrays(GL_TRIANGLES, 0, 6);
+			
 			glfwSwapBuffers(window); // swap the color buffers
 
 			// Poll for window events. The key callback above will only be
 			// invoked during this call.
 			glfwPollEvents();
 		}
+
+		glDisableVertexAttribArray(0);
+		
+		stack.pop();
 	}
 
 	public static void main(String[] args) {
