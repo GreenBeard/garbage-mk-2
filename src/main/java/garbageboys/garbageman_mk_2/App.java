@@ -35,7 +35,7 @@ public class App {
 
 	private void init() {
 		Configuration.DEBUG.set(true);
-		
+
 		// Setup an error callback. The default implementation
 		// will print the error message in System.err.
 		GLFWErrorCallback.createPrint(System.err).set();
@@ -147,7 +147,7 @@ public class App {
 		
 		return program_id;
 	}
-	
+
 	void check_gl_errors() {
 		int error;
 		while ((error = glGetError()) != GL_NO_ERROR) {
@@ -184,21 +184,21 @@ public class App {
 		float[] raw_triangle_data = {
 			/* Triangle one */
 			-0.5f, -0.5f, -0.8f,
-			0.0f, 0.5f, -0.8f,
 			0.5f, -0.5f, -0.8f,
+			0.5f, 0.5f, -0.8f,
 			/* Triangle two */
-			-0.75f, -0.75f, 0.0f,
-			-0.25f, 0.0f, 0.0f,
-			0.25f, -0.75f, 0.0f
+			-0.5f, -0.5f, 0.0f,
+			0.5f, 0.5f, 0.0f,
+			-0.5f, 0.5f, 0.0f
 		};
 		
 		IntBuffer vao = stack.mallocInt(1);
 		glGenVertexArrays(vao);
 		glBindVertexArray(vao.get(0));
-		glEnableVertexAttribArray(0);
 		
 		IntBuffer vbo = stack.mallocInt(1);
 		glGenBuffers(vbo);
+		glEnableVertexAttribArray(0);
 		glBindBuffer(GL_ARRAY_BUFFER, vbo.get(0));
 		
 		/*FloatBuffer triangle_data = BufferUtils.createFloatBuffer(3 * 3);
@@ -206,14 +206,50 @@ public class App {
 		// Will not work without following line
 		triangle_data.rewind();
 		glBufferData(GL_ARRAY_BUFFER, triangle_data, GL_STATIC_DRAW);*/
-		
+
 		glBufferData(GL_ARRAY_BUFFER, raw_triangle_data, GL_STATIC_DRAW);
 		glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0);
+		
+		IntBuffer width = stack.mallocInt(1);
+		IntBuffer height = stack.mallocInt(1);
+		IntBuffer channels = stack.mallocInt(1);
+		ByteBuffer img_buffer = ResourceLoader.LoadTexture("/assets/Buttons/play.png", width, height, channels);
+		
+		/* http://wiki.lwjgl.org/images/5/51/Coordinates.png */
+		float[] raw_uv_coordinates = {
+		  0.0f, 1.0f,
+		  1.0f, 1.0f,
+		  1.0f, 0.0f,
+		  0.0f, 1.0f,
+		  1.0f, 0.0f,
+		  0.0f, 0.0f
+		};
+		
+		IntBuffer texture_id = stack.mallocInt(1);
+		glGenTextures(texture_id);
+		glBindTexture(GL_TEXTURE_2D, texture_id.get(0));
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, width.get(0), height.get(0), 0, GL_RGBA, GL_UNSIGNED_BYTE, img_buffer);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, texture_id.get(0));
+		
+		IntBuffer vbo_uv = stack.mallocInt(1);
+		glGenBuffers(vbo_uv);
+		glEnableVertexAttribArray(1);
+		glBindBuffer(GL_ARRAY_BUFFER, vbo_uv.get(0));
+		glBufferData(GL_ARRAY_BUFFER, raw_uv_coordinates, GL_STATIC_DRAW);
+		glVertexAttribPointer(1, 2, GL_FLOAT, false, 0, 0);
+		
+		int texture_location = glGetUniformLocation(program_id, "text");
 
 		// Run the rendering loop until the user has attempted to close
 		// the window or has pressed the ESCAPE key.
 		while (!glfwWindowShouldClose(window)) {
 			glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); // clear the framebuffer
+			
+			glUniform1i(texture_location, 0);
 
 			glUseProgram(program_id);
 			glDrawArrays(GL_TRIANGLES, 0, 6);

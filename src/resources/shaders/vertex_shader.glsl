@@ -1,10 +1,11 @@
 #version 330 core
 
-layout (location = 0) in vec3 pos; 
+layout (location = 0) in vec3 vertex;
+layout (location = 1) in vec2 uv_point;
 
-out vec4 vertex_color;
+out vec2 texture_coord;
 
 void main() {
-  gl_Position = vec4(pos, 1.0);
-  vertex_color = vec4(1.0, 0.0, 0.0, 1.0);
+  gl_Position = vec4(vertex, 1.0);
+  texture_coord = uv_point;
 }
