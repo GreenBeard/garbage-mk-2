@@ -1,6 +1,11 @@
 package garbageboys.garbageman_mk_2;
 
 public interface Render2D {
+	
+	public void initialize();
+	public void cleanup();
+	
+	public long getWindowID();
 
 	/**
 	 * Loads an image. This style of calls should ideally be batched in order
