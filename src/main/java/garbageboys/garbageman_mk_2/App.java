@@ -22,7 +22,7 @@ public class App {
 	}
 
 	private void init() {
-		renderer = new GarbageRenderer();
+		renderer = new RendererValidation();
 		renderer.initialize();
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
