@@ -13,7 +13,7 @@ import java.nio.file.Paths;
 
 public class ResourceLoader {
 	
-	private static URL FindResourceURL(String file_name) {
+	public static URL FindResourceURL(String file_name) {
 		URL url = ResourceLoader.class.getClass().getResource(file_name);
 		if (url == null && file_name.substring(0, 1).equals("/")) {
 			/* Fucky Java resources */
