@@ -111,7 +111,6 @@ public class RectPacker {
 		}
 	}
 
-	@SuppressWarnings("unused")
 	public boolean pack(final List<Rect> input, List<Rect> placed,
 			int pack_width, int pack_height, int check_count, boolean enable_insanity) {
 		assert(input != null);
@@ -151,9 +150,9 @@ public class RectPacker {
 			}
 		});
 
-		int max_input_sorted_size = input_sorted.size();
-
-		{
+		if (input.size() == 0) {
+			return true;
+		} else {
 			Rect corner_rect = input_sorted.get(0);
 			corner_rect.x = 0;
 			corner_rect.y = 0;

@@ -36,14 +36,24 @@ public class App {
 	private void game_loop_start() {
 		String play_button = "/assets/Buttons/play.png";
 		String crafting_screen = "/assets/Screens/craftingScreen.png";
+		String customer_a = "/assets/Customers/Alan.png";
+		String customer_b = "/assets/Customers/Brett.png";
+		String customer_c = "/assets/Customers/Dana.png";
 		renderer.loadImage(play_button);
 		renderer.loadImage(crafting_screen);
+		renderer.loadImage(customer_a);
+		renderer.loadImage(customer_b);
+		renderer.loadImage(customer_c);
 		renderer.refreshImages();
 		while (!glfwWindowShouldClose(renderer.getWindowID())) {
 			long start = System.nanoTime();
 			renderer.renderBatchStart();
 			renderer.batchImageScreenScaled(crafting_screen, 0, 0f, 0f, 1f, 1f);
 			renderer.batchImageScreenScaled(play_button, 1, 0.25f, 0.25f, 0.5f, 0.5f);
+
+			renderer.batchImageScreenScaled(customer_a, 2, 0.0f, 0.0f, 0.5f, 0.25f);
+			renderer.batchImageScreenScaled(customer_b, 2, 0.0f, 0.25f, 0.5f, 0.25f);
+			renderer.batchImageScreenScaled(customer_c, 2, 0.0f, 0.5f, 0.5f, 0.25f);
 			renderer.renderBatchEnd();
 			glfwPollEvents();
 			long end = System.nanoTime();
@@ -51,6 +61,9 @@ public class App {
 		}
 		renderer.unloadImage(play_button);
 		renderer.unloadImage(crafting_screen);
+		renderer.unloadImage(customer_a);
+		renderer.unloadImage(customer_b);
+		renderer.unloadImage(customer_c);
 	}
 
 	public static void main(String[] args) {
