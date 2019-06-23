@@ -23,7 +23,7 @@ public class RectPacker {
 		SOUTH,
 		EAST,
 		WEST;
-		
+
 		void increment(Rect rec) {
 			switch (this) {
 				case NORTH:
@@ -132,7 +132,7 @@ public class RectPacker {
 				rect.width = tmp;
 			}
 		}
-		
+
 		/* Place largest items towards index 0 */
 		input_sorted.sort(new Comparator<Rect>() {
 			@Override
@@ -364,7 +364,7 @@ public class RectPacker {
 		}
 		return perim;
 	}
-	
+
 	private void place_rect_align(Rect rect, Rect empty_rect, OffDirection dir) {
 		switch (dir) {
 			case NORTHEAST:
@@ -387,7 +387,7 @@ public class RectPacker {
 				break;
 		}
 	}
-	
+
 	private void place_rect(List<Rect> placed, List<PerimTile> perim_tiles, Rect rect,
 			int[] filled_tiles, int pack_width, int pack_height) {
 		int j_start = rect.y;
@@ -771,7 +771,7 @@ public class RectPacker {
 			}
 		}
 	}
-	
+
 	private boolean check_intersect(Rect test_rect,
 			int[] filled_tiles, int pack_width, int pack_height) {
 		return check_intersect(test_rect, test_rect.x, test_rect.y, filled_tiles, pack_width, pack_height);
@@ -800,7 +800,7 @@ public class RectPacker {
 		}
 		return false;
 	}
-	
+
 	private boolean check_intersect_b(Rect test_rect,
 			int x, int y,
 			List<Rect> placed) {

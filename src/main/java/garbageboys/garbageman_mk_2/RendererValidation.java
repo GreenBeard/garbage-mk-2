@@ -1,12 +1,18 @@
 package garbageboys.garbageman_mk_2;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class RendererValidation implements Render2D {
 
+	Class<? extends Render2D> clazz;
+	public RendererValidation(Class<? extends Render2D> clazz) {
+		this.clazz = clazz;
+	}
+
 	private class ImageInfo {
-		String name;
+		Object object;
 		boolean loaded;
 	}
 	
@@ -14,9 +20,9 @@ public class RendererValidation implements Render2D {
 	List<ImageInfo> images;
 	boolean batch_mode = false;
 	
-	private void validate_batch_resource(String resource) {
+	private void validate_batch_resource(Object image) {
 		if (batch_mode) {
-			ImageInfo info = find_info(resource);
+			ImageInfo info = find_info(image);
 			if (info != null) {
 				/* success */
 			} else {
@@ -26,10 +32,10 @@ public class RendererValidation implements Render2D {
 			throw new RuntimeException();
 		}
 	}
-	
-	private ImageInfo find_info(String resource) {
+
+	private ImageInfo find_info(Object object) {
 		for (ImageInfo info : images) {
-			if (info.name.equals(resource)) {
+			if (info.object == object) {
 				return info;
 			}
 		}
@@ -38,7 +44,11 @@ public class RendererValidation implements Render2D {
 
 	@Override
 	public void initialize() {
-		actual_renderer = new GarbageRenderer();
+		try {
+			actual_renderer = clazz.getConstructor().newInstance();
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
+			throw new RuntimeException();
+		}
 		actual_renderer.initialize();
 		
 		images = new ArrayList<ImageInfo>();
@@ -58,15 +68,21 @@ public class RendererValidation implements Render2D {
 	}
 
 	@Override
-	public boolean loadImage(String resource) {
-		if (find_info(resource) != null) {
-			throw new RuntimeException();
-		}
+	public Object loadImage(String resource) {
 		ImageInfo info = new ImageInfo();
-		info.name = resource;
+		info.object = actual_renderer.loadImage(resource);
 		info.loaded = false;
 		images.add(info);
-		return actual_renderer.loadImage(resource);
+		return info.object;
+	}
+
+	@Override
+	public Object loadImage(String resource, int x, int y, int width, int height) {
+		ImageInfo info = new ImageInfo();
+		info.object = actual_renderer.loadImage(resource, x, y, width, height);
+		info.loaded = false;
+		images.add(info);
+		return info.object;
 	}
 
 	@Override
@@ -78,17 +94,16 @@ public class RendererValidation implements Render2D {
 	}
 
 	@Override
-	public boolean unloadImage(String resource) {
-		if (find_info(resource) == null) {
+	public void unloadImage(Object image) {
+		if (find_info(image) == null) {
 			throw new RuntimeException();
 		}
 		for (int i = 0; i < images.size(); ++i) {
-			if (images.get(i).name == resource) {
+			if (images.get(i).object == image) {
 				images.remove(i);
 				break;
 			}
 		}
-		return false;
 	}
 
 	@Override
@@ -107,21 +122,26 @@ public class RendererValidation implements Render2D {
 	}
 
 	@Override
-	public void batchImage(String resource, int layer, int x, int y) {
-		validate_batch_resource(resource);
-		actual_renderer.batchImage(resource, layer, x, y);
+	public void batchImage(Object image, int layer, int x, int y) {
+		validate_batch_resource(image);
+		actual_renderer.batchImage(image, layer, x, y);
 	}
 
 	@Override
-	public void batchImageScaled(String resource, int layer, int x, int y, int width, int height) {
-		validate_batch_resource(resource);
-		actual_renderer.batchImageScaled(resource, layer, x, y, width, height);
+	public void batchImageScaled(Object image, int layer, int x, int y, int width, int height) {
+		validate_batch_resource(image);
+		actual_renderer.batchImageScaled(image, layer, x, y, width, height);
 	}
 
 	@Override
-	public void batchImageScreenScaled(String resource, int layer, float x, float y, float width, float height) {
-		validate_batch_resource(resource);
-		actual_renderer.batchImageScreenScaled(resource, layer, x, y, width, height);
+	public void batchImageScreenScaled(Object image, int layer, float x, float y, float width, float height) {
+		validate_batch_resource(image);
+		actual_renderer.batchImageScreenScaled(image, layer, x, y, width, height);
+	}
+
+	@Override
+	public long getHintSleep() {
+		return actual_renderer.getHintSleep();
 	}
 
 }

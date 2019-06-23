@@ -58,9 +58,9 @@ public class ResourceLoader {
 			ByteBuffer img_in_buffer = BufferUtils.createByteBuffer(bytes.length);
 			img_in_buffer.put(bytes);
 			img_in_buffer.rewind();
-			
+
 			ByteBuffer img_out_buffer = STBImage.stbi_load_from_memory(img_in_buffer, width, height, channels, 4);
-			
+
 			return img_out_buffer;
 		} catch (IOException | URISyntaxException e) {
 			e.printStackTrace();

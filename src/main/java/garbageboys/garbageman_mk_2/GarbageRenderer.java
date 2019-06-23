@@ -27,17 +27,30 @@ public class GarbageRenderer implements Render2D {
 	// The window handle
 	private long window;
 	
+	private long render_wait_time;
+
 	private int program_id;
-	
+
+	private class GarbageHandle {
+		public String file_name;
+		/* (0,0) is the bottom left */
+		public int x;
+		public int y;
+		public int full_width;
+		@SuppressWarnings("unused")
+		public int height;
+	}
+
 	private class GarbageImage {
 		public int tmp_id;
 		public int texture_id;
 		public int texture_pos;
+		/* Full image dimensions even if not fully used */
 		public int width;
 		public int height;
-		float[] raw_triangle_data;
-		float[] raw_uv_coordinates;
-		
+		public float[] raw_triangle_data;
+		public float[] raw_uv_coordinates;
+
 		public GarbageImage(int texture_id, int texture_pos, int width, int height) {
 			this.texture_id = texture_id;
 			this.texture_pos = texture_pos;
@@ -48,7 +61,7 @@ public class GarbageRenderer implements Render2D {
 		}
 	}
 
-	private HashMap<String, GarbageImage> images;
+	private HashMap<GarbageHandle, GarbageImage> images;
 	
 	private void resizeCallback(long window, int width, int height) {
 		glViewport(0, 0, width, height);
@@ -75,7 +88,9 @@ public class GarbageRenderer implements Render2D {
 		glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
 		glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 		glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-	
+		// A form of antialiasing
+		glfwWindowHint(GLFW_SAMPLES, 4);
+
 		// Create the window
 		window = glfwCreateWindow(1600, 900, "Hello World!", NULL, NULL);
 		if (window == NULL) {
@@ -134,6 +149,7 @@ public class GarbageRenderer implements Render2D {
 		glEnable(GL_DEPTH_TEST);
 		// Accept fragment if it closer to the camera than the former one
 		glDepthFunc(GL_LESS);
+		glEnable(GL_MULTISAMPLE);
 
 		String vertex_src = ResourceLoader.LoadShader("/shaders/vertex_shader.glsl");
 		String fragment_src = ResourceLoader.LoadShader("/shaders/fragment_shader.glsl");
@@ -237,7 +253,7 @@ public class GarbageRenderer implements Render2D {
 		if (images.size() >= max_textures) {
 			throw new RuntimeException("Out of memory");
 		}
-		for (Entry<String, GarbageImage> image : images.entrySet()) {
+		for (Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
 			int pos = image.getValue().texture_pos;
 			if (pos >= 0) {
 				used[pos] = true;
@@ -253,20 +269,47 @@ public class GarbageRenderer implements Render2D {
 	}
 
 	@Override
-	public boolean loadImage(String resource) {
+	public Object loadImage(String resource) {
 		MemoryStack stack = stackPush();
 
-		IntBuffer width = stack.mallocInt(1);
-		IntBuffer height = stack.mallocInt(1);
+		IntBuffer full_width = stack.mallocInt(1);
+		IntBuffer full_height = stack.mallocInt(1);
 		IntBuffer channels = stack.mallocInt(1);
-		@SuppressWarnings("unused")
-		ByteBuffer img_buffer = ResourceLoader.LoadTexture(resource, width, height, channels);
+		ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
 
-		GarbageImage image = new GarbageImage(0, -1, width.get(0), height.get(0));
-		images.put(resource, image);
+		GarbageImage image = new GarbageImage(0, -1, full_width.get(0), full_height.get(0));
+		GarbageHandle handle = new GarbageHandle();
+		handle.file_name = resource;
+		handle.full_width = full_width.get(0);
+		handle.height = full_height.get(0);
+		handle.x = 0;
+		handle.y = 0;
+		images.put(handle, image);
 
 		stack.pop();
-		return true;
+		return handle;
+	}
+
+	@Override
+	public Object loadImage(String resource, int x, int y, int width, int height) {
+		MemoryStack stack = stackPush();
+
+		IntBuffer full_width = stack.mallocInt(1);
+		IntBuffer full_height = stack.mallocInt(1);
+		IntBuffer channels = stack.mallocInt(1);
+		ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+
+		GarbageImage image = new GarbageImage(0, -1, width, height);
+		GarbageHandle handle = new GarbageHandle();
+		handle.file_name = resource;
+		handle.full_width = full_width.get(0);
+		handle.height = full_height.get(0);
+		handle.x = x;
+		handle.y = y;
+		images.put(handle, image);
+
+		stack.pop();
+		return handle;
 	}
 
 	@Override
@@ -287,15 +330,16 @@ public class GarbageRenderer implements Render2D {
 			/* 0 is always an invalid texture */
 			image.texture_id = 0;
 		}
-		
+
+		int border_size = 1;
 		int id = 0;
 		ArrayList<Rect> rects = new ArrayList<Rect>();
 		for (GarbageImage image : images.values()) {
 			image.tmp_id = id++;
 
 			Rect rect = new Rect();
-			rect.width = image.width;
-			rect.height = image.height;
+			rect.width = image.width + 2 * border_size;
+			rect.height = image.height + 2 * border_size;
 			rect.id = image.tmp_id;
 			rects.add(rect);
 		}
@@ -316,16 +360,26 @@ public class GarbageRenderer implements Render2D {
 			IntBuffer channels = stack.mallocInt(1);
 			for (Rect rect : placed) {
 				remove_rect_by_id(rects, rect.id);
-				Entry<String, GarbageImage> entry = find_entry_by_id(rect.id);
-				ByteBuffer img_buffer = ResourceLoader.LoadTexture(entry.getKey(), width, height, channels);
+				Entry<GarbageHandle, GarbageImage> entry = find_entry_by_id(rect.id);
+				ByteBuffer img_buffer = ResourceLoader.LoadTexture(entry.getKey().file_name, width, height, channels);
+
+				ByteBuffer img_buffer_cropped = crop_image_buffer(img_buffer, entry.getKey(), entry.getValue());
 
 				entry.getValue().texture_pos = texture_pos;
 				entry.getValue().texture_id = texture_id.get(0);
 
-				if (rect.width == width.get(0)) {
-					place_image_rgba(entry.getValue(), atlas_buffer, image_size, image_size, img_buffer, rect, false);
-				} else if (rect.width == height.get(0)) {
-					place_image_rgba(entry.getValue(), atlas_buffer, image_size, image_size, img_buffer, rect, true);
+				Rect img_rect = new Rect();
+				img_rect.width = rect.width - 2 * border_size;
+				img_rect.height = rect.height - 2 * border_size;
+				img_rect.x = rect.x + border_size;
+				img_rect.y = rect.y + border_size;
+				img_rect.id = rect.id;
+				if (entry.getValue().width == img_rect.width) {
+					assert(entry.getValue().height == img_rect.height);
+					place_image_rgba(entry.getValue(), atlas_buffer, image_size, image_size, img_buffer_cropped, img_rect, false);
+				} else if (entry.getValue().width == img_rect.height) {
+					assert(entry.getValue().height == img_rect.width);
+					place_image_rgba(entry.getValue(), atlas_buffer, image_size, image_size, img_buffer_cropped, img_rect, true);
 				} else {
 					assert(false);
 				}
@@ -346,6 +400,21 @@ public class GarbageRenderer implements Render2D {
 		stack.pop();
 	}
 
+	private ByteBuffer crop_image_buffer(ByteBuffer img_buffer, GarbageHandle key, GarbageImage value) {
+		ByteBuffer buffer = BufferUtils.createByteBuffer(4 * value.width * value.height);
+		for (int j = 0; j < value.height; ++j) {
+			for (int i = 0; i < value.width; ++i) {
+				img_buffer.position(4 * (key.x + i + key.full_width * (key.y + j)));
+				/* 4 for RGBA */
+				for (int k = 0; k < 4; ++k) {
+					buffer.put(img_buffer.get());
+				}
+			}
+		}
+		buffer.rewind();
+		return buffer;
+	}
+
 	private void remove_rect_by_id(ArrayList<Rect> rects, int id) {
 		for (int i = 0; i < rects.size(); ++i) {
 			if (rects.get(i).id == id) {
@@ -355,8 +424,8 @@ public class GarbageRenderer implements Render2D {
 		}
 	}
 
-	private Entry<String, GarbageImage> find_entry_by_id(int id) {
-		for (Entry<String, GarbageImage> image : images.entrySet()) {
+	private Entry<GarbageHandle, GarbageImage> find_entry_by_id(int id) {
+		for (Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
 			if (image.getValue().tmp_id == id) {
 				return image;
 			}
@@ -408,10 +477,11 @@ public class GarbageRenderer implements Render2D {
 		assert(img_buffer.capacity() == img_rect.width * img_rect.height * channel_count);
 
 		/* Image buffers in LWJGL have image origin in the top left
-		 * (normally they have an origin of the bottom left)
-		 * A bit overly "helpful" along with treating them as unsigned bytes
-		 * e.g. (byte) 255 which java converts to -1 will be white
-		 * 0 will be black.
+		 * (normally they have an origin of the bottom left).
+		 * This is accounted for by the fact that it defines the
+		 * (u, v) coordinate space to have the y access flipped
+		 * (starting in the top left also).
+		 * http://wiki.lwjgl.org/images/5/51/Coordinates.png
 		 */
 		for (int i = 0; i < img_rect.width; ++i) {
 			for (int j = 0; j < img_rect.height; ++j) {
@@ -427,7 +497,6 @@ public class GarbageRenderer implements Render2D {
 			}
 		}
 
-		/* http://wiki.lwjgl.org/images/5/51/Coordinates.png */
 		float uv_width = (float) img_rect.width / atlas_width;
 		float uv_height = (float) img_rect.height / atlas_height;
 		/* top left */
@@ -442,17 +511,34 @@ public class GarbageRenderer implements Render2D {
 		  uv_u, uv_v
 		};
 	}
+	
+	GarbageHandle find_image_handle(String file_name) {
+		for (GarbageHandle handle : images.keySet()) {
+			if (handle.file_name == file_name) {
+				return handle;
+			}
+		}
+		return null;
+	}
+
+	Entry<GarbageHandle, GarbageImage> find_image_entry(String file_name) {
+		for (Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
+			if (image.getKey().file_name == file_name) {
+				return image;
+			}
+		}
+		return null;
+	}
 
 	@Override
-	public boolean unloadImage(String resource) {
-		images.remove(resource);
-		return true;
+	public void unloadImage(Object handle) {
+		images.remove(handle);
 	}
 
 	@Override
 	public void renderBatchStart() {
 		// TODO improve
-    for(Entry<String, GarbageImage> image : images.entrySet()) {
+    for(Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
     	image.getValue().raw_triangle_data = new float[] {
     		0.0f, 0.0f, 0.0f,
     		0.0f, 0.0f, 0.0f,
@@ -499,15 +585,6 @@ public class GarbageRenderer implements Render2D {
 			uv_coordinates.put(raw_uv_coordinates);
 		}
 		uv_coordinates.rewind();*/
-		@SuppressWarnings("unused")
-		float[] raw_uv_coordinates = {
-			0.0f, 1.0f,
-			1.0f, 1.0f,
-			1.0f, 0.0f,
-			0.0f, 1.0f,
-			1.0f, 0.0f,
-			0.0f, 0.0f
-		};
 
 		IntBuffer vbo_uv = stack.mallocInt(1);
 		glGenBuffers(vbo_uv);
@@ -521,13 +598,12 @@ public class GarbageRenderer implements Render2D {
 
 		int texture_location = glGetUniformLocation(program_id, "text");
 
-		for(Entry<String, GarbageImage> image : images.entrySet()) {
+		for(Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
     	assert(image.getValue().raw_triangle_data.length == 3 * 6);
 
   		glBindBuffer(GL_ARRAY_BUFFER, vbo_uv.get(0));
   		check_gl_errors();
   		glBufferData(GL_ARRAY_BUFFER, image.getValue().raw_uv_coordinates, GL_STATIC_DRAW);
-  		//glBufferData(GL_ARRAY_BUFFER, raw_uv_coordinates, GL_STATIC_DRAW);
   		check_gl_errors();
   		glBindBuffer(GL_ARRAY_BUFFER, vbo.get(0));
   		check_gl_errors();
@@ -542,7 +618,16 @@ public class GarbageRenderer implements Render2D {
   		check_gl_errors();
     }
 
+		long swap_start = System.nanoTime();
+		glFinish();
 		glfwSwapBuffers(window);
+		long swap_end = System.nanoTime();
+		long real_swap_extra = swap_end - swap_start + render_wait_time;
+		render_wait_time = (long) (0.95 * real_swap_extra);// - 2 * 1000 * 1000;
+		System.out.printf("Swap %6.2f ms Raw Swap %6.2f ms Next Delay %6.2f ms\n",
+				(swap_end - swap_start) / (1000f * 1000f),
+				real_swap_extra / (1000f * 1000f),
+				render_wait_time / (1000f * 1000f));
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
@@ -553,23 +638,23 @@ public class GarbageRenderer implements Render2D {
 	}
 
 	@Override
-	public void batchImage(String resource, int layer, int x, int y) {
+	public void batchImage(Object handle, int layer, int x, int y) {
 		MemoryStack stack = MemoryStack.stackPush();
 
-		GarbageImage image = images.get(resource);
+		GarbageImage image = images.get(handle);
 		IntBuffer raw_width = stack.mallocInt(1);
 		IntBuffer raw_height = stack.mallocInt(1);
 		glfwGetWindowSize(window, raw_width, raw_height);
 		float screen_width = raw_width.get(0);
 		float screen_height = raw_height.get(0);
-		batchImageScreenScaled(resource, layer, x / screen_width, y / screen_height,
+		batchImageScreenScaled(handle, layer, x / screen_width, y / screen_height,
 				image.width / screen_width, image.height / screen_height);
 
 		stack.pop();
 	}
 
 	@Override
-	public void batchImageScaled(String resource, int layer, int x, int y, int width, int height) {
+	public void batchImageScaled(Object handle, int layer, int x, int y, int width, int height) {
 		MemoryStack stack = MemoryStack.stackPush();
 
 		IntBuffer raw_width = stack.mallocInt(1);
@@ -577,15 +662,15 @@ public class GarbageRenderer implements Render2D {
 		glfwGetWindowSize(window, raw_width, raw_height);
 		float screen_width = raw_width.get(0);
 		float screen_height = raw_height.get(0);
-		batchImageScreenScaled(resource, layer, x / screen_width, y / screen_height,
+		batchImageScreenScaled(handle, layer, x / screen_width, y / screen_height,
 				width / screen_width, height / screen_height);
 
 		stack.pop();
 	}
 
 	@Override
-	public void batchImageScreenScaled(String resource, int layer, float x, float y, float width, float height) {
-		GarbageImage image = images.get(resource);
+	public void batchImageScreenScaled(Object handle, int layer, float x, float y, float width, float height) {
+		GarbageImage image = images.get(handle);
 		float fixed_x = 2 * x - 1;
 		float fixed_y = 2 * y - 1;
 		float fixed_width = 2 * width;
@@ -604,6 +689,18 @@ public class GarbageRenderer implements Render2D {
 				x + width, y + height, -layer / 1000f,
 				x, y + height, -layer / 1000f
 		};
+	}
+
+	@Override
+	public long getHintSleep() {
+		long wait_cap = (long) (0.9f * 1 / 60f * 1000 * 1000);
+		if (render_wait_time / 1000 > wait_cap) {
+			return wait_cap;
+		} if (render_wait_time > 0) {
+			return render_wait_time / 1000;
+		} else {
+			return 0;
+		}
 	}
 
 }
