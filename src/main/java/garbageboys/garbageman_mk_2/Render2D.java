@@ -7,7 +7,10 @@ public interface Render2D {
 
 	public long getWindowID();
 
-	/* Returns answer in microseconds */
+	/**
+	 * Returns hint to sleep to barely have frame finish rendering
+	 * before display in microseconds
+	 */
 	public long getHintSleep();
 
 	/**

@@ -3,6 +3,7 @@ package garbageboys.garbageman_mk_2;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GLXSGIVideoSync;
 import org.lwjgl.system.*;
 
 import java.io.BufferedOutputStream;
@@ -28,6 +29,8 @@ public class GarbageRenderer implements Render2D {
 	private long window;
 	
 	private long render_wait_time;
+
+	private long last_frame_end;
 
 	private int program_id;
 
@@ -65,6 +68,40 @@ public class GarbageRenderer implements Render2D {
 	
 	private void resizeCallback(long window, int width, int height) {
 		glViewport(0, 0, width, height);
+	}
+	
+	enum RenderMode {
+		PLAIN,
+		VSYNC,
+		/* Benefits of VSYNC if above refresh rate
+		 * frame tearing may occur otherwise
+		 */
+		VBLANK_SYNC
+	}
+	
+	private RenderMode render_mode = RenderMode.PLAIN;
+
+	public void setRenderMode(RenderMode render_mode) {
+		if (render_mode == RenderMode.VBLANK_SYNC) {
+			if (glfwExtensionSupported("GLX_SGI_video_sync")) {
+				this.render_mode = render_mode;
+			} else {
+				System.out.println("WARNING: GLX_SGI_video_sync unsupported using default vsync");
+				this.render_mode = RenderMode.VSYNC;
+			}
+		} else {
+			this.render_mode = render_mode;
+		}
+		// Enable v-sync
+		switch (this.render_mode) {
+			case PLAIN:
+			case VBLANK_SYNC:
+				glfwSwapInterval(0);
+				break;
+			case VSYNC:
+				glfwSwapInterval(1);
+				break;
+		}
 	}
 
 	@Override
@@ -117,8 +154,6 @@ public class GarbageRenderer implements Render2D {
 
 		// Make the OpenGL context current
 		glfwMakeContextCurrent(window);
-		// Enable v-sync
-		glfwSwapInterval(1);
 
 		// Make the window visible
 		glfwShowWindow(window);
@@ -129,6 +164,8 @@ public class GarbageRenderer implements Render2D {
 		// creates the GLCapabilities instance and makes the OpenGL
 		// bindings available for use.
 		GL.createCapabilities();
+
+		//glfwSetWindowMonitor(window, glfwGetPrimaryMonitor(), 0, 0, vidmode.width(), vidmode.height(), GLFW_DONT_CARE);
 
 		IntBuffer fWidth = stack.mallocInt(1);
 		IntBuffer fHeight = stack.mallocInt(1);
@@ -144,6 +181,8 @@ public class GarbageRenderer implements Render2D {
 
 		System.out.println("OpenGL version: " + glGetString(GL_VERSION));
 		System.out.println("       device: " + glGetString(GL_RENDERER));
+		System.out.println("Monitor width: " + vidmode.width());
+		System.out.println("       height: " + vidmode.height());
 
 		// Enable depth test
 		glEnable(GL_DEPTH_TEST);
@@ -154,15 +193,15 @@ public class GarbageRenderer implements Render2D {
 		String vertex_src = ResourceLoader.LoadShader("/shaders/vertex_shader.glsl");
 		String fragment_src = ResourceLoader.LoadShader("/shaders/fragment_shader.glsl");
 		program_id = create_gl_program(vertex_src, fragment_src);
-		
+
 		IntBuffer vao = stack.mallocInt(1);
 		glGenVertexArrays(vao);
 		check_gl_errors();
 		glBindVertexArray(vao.get(0));
 		check_gl_errors();
-		
+
 		images = new HashMap<>();
-		
+
 		stack.pop();
 	}
 
@@ -618,15 +657,25 @@ public class GarbageRenderer implements Render2D {
   		check_gl_errors();
     }
 
-		long swap_start = System.nanoTime();
+		long time_now = System.nanoTime();
+		long frame_time = time_now - last_frame_end;
+		long extra_frame_time = render_wait_time + 1000 * 1000 * 1000 / 60 - frame_time;
+
 		glFinish();
+		//long swap_start = System.nanoTime();
 		glfwSwapBuffers(window);
-		long swap_end = System.nanoTime();
-		long real_swap_extra = swap_end - swap_start + render_wait_time;
-		render_wait_time = (long) (0.95 * real_swap_extra);// - 2 * 1000 * 1000;
-		System.out.printf("Swap %6.2f ms Raw Swap %6.2f ms Next Delay %6.2f ms\n",
-				(swap_end - swap_start) / (1000f * 1000f),
-				real_swap_extra / (1000f * 1000f),
+		glFinish();
+		IntBuffer count = stack.mallocInt(1);
+		if (render_mode == RenderMode.VBLANK_SYNC) {
+			GLXSGIVideoSync.glXWaitVideoSyncSGI(1, 0, count);
+		}
+
+		last_frame_end = System.nanoTime();
+		//long swap_end = System.nanoTime();
+		//long real_swap_extra = swap_end - swap_start + render_wait_time;
+		setHintSleep((long) (0.8 * extra_frame_time));
+		System.out.printf("Render frame time %6.2f ms Next Delay %6.2f ms\n",
+				frame_time / (1000f * 1000f),
 				render_wait_time / (1000f * 1000f));
 
 		glDisableVertexAttribArray(0);
@@ -691,16 +740,24 @@ public class GarbageRenderer implements Render2D {
 		};
 	}
 
+	private void setHintSleep(long wait_time) {
+		if (render_mode != RenderMode.PLAIN) {
+			long wait_cap = (long) (0.9f * 1 / 60f * 1000 * 1000 * 1000);
+			if (wait_time > wait_cap) {
+				render_wait_time = wait_cap;
+			} else if (wait_time > 0) {
+				render_wait_time = wait_time;
+			} else {
+				render_wait_time = 0;
+			}
+		} else {
+			render_wait_time = 0;
+		}
+	}
+
 	@Override
 	public long getHintSleep() {
-		long wait_cap = (long) (0.9f * 1 / 60f * 1000 * 1000);
-		if (render_wait_time / 1000 > wait_cap) {
-			return wait_cap;
-		} if (render_wait_time > 0) {
-			return render_wait_time / 1000;
-		} else {
-			return 0;
-		}
+		return render_wait_time / 1000;
 	}
 
 }

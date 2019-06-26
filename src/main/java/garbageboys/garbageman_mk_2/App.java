@@ -47,14 +47,27 @@ public class App {
 		renderer.refreshImages();
 		
 		int frame = 0;
+		
+		GarbageRenderer real_renderer = (GarbageRenderer) ((RendererValidation) renderer).actual_renderer;
+		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
+		
+		//Random random = new Random(System.nanoTime());
+		boolean sleep = true;//random.nextBoolean();
 		while (!glfwWindowShouldClose(renderer.getWindowID())) {
 			long start = System.nanoTime();
 			MemoryStack stack = MemoryStack.stackPush();
 
 			try {
-				long sleep_time = renderer.getHintSleep() / 1000;
+				long sleep_time;
+				if (sleep) {
+					 sleep_time = renderer.getHintSleep() / 1000;
+				} else {
+					sleep_time = 0;
+				}
 				Thread.sleep(sleep_time);
-			} catch (InterruptedException e) { }
+			} catch (InterruptedException e) { e.printStackTrace(); }
+			glfwPollEvents();
+			
 
 			long render_start = System.nanoTime();
 			renderer.renderBatchStart();
@@ -108,8 +121,6 @@ public class App {
 			long render_end = System.nanoTime();
 			stack.pop();
 
-			glfwPollEvents();
-
 			long end = System.nanoTime();
 			System.out.printf("Total Frame time %.2f ms Render Frame time %.2f ms\n",
 					(end - start) / (1000f * 1000f),
@@ -128,6 +139,8 @@ public class App {
 		renderer.unloadImage(customer_b_2);
 		renderer.unloadImage(customer_b_3);
 		renderer.unloadImage(customer_c);
+
+		System.out.println("Sleep was " + sleep);
 	}
 
 	public static void main(String[] args) {

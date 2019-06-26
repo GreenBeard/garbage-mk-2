@@ -15,8 +15,8 @@ public class RendererValidation implements Render2D {
 		Object object;
 		boolean loaded;
 	}
-	
-	Render2D actual_renderer;
+
+	public Render2D actual_renderer;
 	List<ImageInfo> images;
 	boolean batch_mode = false;
 	
