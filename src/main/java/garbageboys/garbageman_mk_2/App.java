@@ -82,7 +82,8 @@ public class App {
 	}
 
 	Object play_button;
-	List<Object> title_background_frames;
+	List<Object> title_background_frames_1;
+	List<Object> title_background_frames_2;
 	boolean title_loop_complete = false;
 	Object crafting_screen;
 	Object customer_a_0;
@@ -98,7 +99,8 @@ public class App {
 	int circle_y = 0;
 	private void title_screen_init() {
 		play_button = renderer.loadImage("/assets/Buttons/play.png");
-		title_background_frames = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
+		title_background_frames_1 = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
+		title_background_frames_2 = renderer.loadImageSeries("/assets/Screens/mainTitle2.png", 384, 216, 9);
 		renderer.refreshImages();
 		SoundManager sound_manager = null;
 		/*sound_manager.loadSound(STARTUP_SOUND);
@@ -109,7 +111,7 @@ public class App {
 
 	private void title_screen_cleanup() {
 		renderer.unloadImage(play_button);
-		for (Object obj : title_background_frames) {
+		for (Object obj : title_background_frames_1) {
 			renderer.unloadImage(obj);
 		}
 	}
@@ -119,19 +121,23 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
-		if (title_loop_complete) {
-			title_frame = title_background_frames.size() - 1;
-			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
-		} else {
-			title_frame = (frame / 5) % title_background_frames.size();
-		}
-		renderer.batchImageScreenScaled(
-				title_background_frames.get(title_frame),
-				0, 0.0f, 0.0f, 1.0f, 1.0f);
-		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
-		if (title_frame == title_background_frames.size() - 1) {
+		if ((frame / 5) == title_background_frames_1.size()) {
 			title_loop_complete = true;
 		}
+		List<Object> current_frames;
+		if (title_loop_complete) {
+			current_frames = title_background_frames_2;
+			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
+		} 
+		else {
+			current_frames = title_background_frames_1;
+		}
+		
+		title_frame = (frame / 5) % current_frames.size();
+		renderer.batchImageScreenScaled(
+				current_frames.get(title_frame),
+				0, 0.0f, 0.0f, 1.0f, 1.0f);
+		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
 		renderer.renderBatchEnd();
 
 		stack.pop();
