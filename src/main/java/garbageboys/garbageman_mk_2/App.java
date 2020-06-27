@@ -11,9 +11,12 @@ import org.lwjgl.*;
 import org.lwjgl.glfw.GLFWJoystickCallback;
 import org.lwjgl.system.MemoryStack;
 
+import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
+
 public class App {
 
 	Render2D renderer;
+	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
 
 	public void run() {
 		System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -97,6 +100,11 @@ public class App {
 		play_button = renderer.loadImage("/assets/Buttons/play.png");
 		title_background_frames = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
 		renderer.refreshImages();
+		SoundManager sound_manager = null;
+		/*sound_manager.loadSound(STARTUP_SOUND);
+		sound_manager.refreshSounds();
+		sound_manager.playSound(STARTUP_SOUND, SoundTypes.Effects);
+		sound_manager.unloadSound(STARTUP_SOUND);*/
 	}
 
 	private void title_screen_cleanup() {
@@ -115,7 +123,7 @@ public class App {
 			title_frame = title_background_frames.size() - 1;
 			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
 		} else {
-			title_frame = (frame / 20) % title_background_frames.size();
+			title_frame = (frame / 5) % title_background_frames.size();
 		}
 		renderer.batchImageScreenScaled(
 				title_background_frames.get(title_frame),
