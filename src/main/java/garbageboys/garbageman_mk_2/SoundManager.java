@@ -29,7 +29,13 @@ public interface SoundManager {
 	public boolean unloadSound(String resource);
 
 	public void playSound(String resource, SoundTypes type);
+	
+	public void stopSound(String resource, SoundTypes type);
 
 	public void resetSounds(SoundTypes type);
+	
+	public void loopSound(String resource, SoundTypes type);
+
+    public void unloopSound(String resource, SoundTypes type);
 
 }

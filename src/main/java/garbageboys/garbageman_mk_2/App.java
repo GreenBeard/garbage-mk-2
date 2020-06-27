@@ -2,9 +2,12 @@ package garbageboys.garbageman_mk_2;
 
 import static org.lwjgl.glfw.GLFW.*;
 
+import java.net.URISyntaxException;
+import java.net.URL;
 import java.nio.DoubleBuffer;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.nio.file.Paths;
 import java.util.List;
 
 import org.lwjgl.*;
@@ -14,6 +17,8 @@ import org.lwjgl.system.MemoryStack;
 public class App {
 
 	Render2D renderer;
+	
+	SoundManager soundManager;
 
 	public void run() {
 		System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -26,6 +31,18 @@ public class App {
 	private void init() {
 		renderer = new RendererValidation(GarbageRenderer.class);
 		renderer.initialize();
+		
+		soundManager = new DefaultSoundManager();
+	
+		String startupSound = "/assets/Sounds/SoundEffects/Startup.wav";
+		String backgroundMusic = "/assets/Sounds/Songs/Cheery.wav";
+		
+		
+		soundManager.loadSound(startupSound);
+		soundManager.loadSound(backgroundMusic);
+		soundManager.playSound(startupSound, null);
+		soundManager.playSound(backgroundMusic, null);
+		
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
 		glfwSetKeyCallback(renderer.getWindowID(), (window, key, scancode, action, mods) -> {
@@ -41,8 +58,8 @@ public class App {
 		GarbageRenderer real_renderer = (GarbageRenderer) ((RendererValidation) renderer).actual_renderer;
 		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
 
-		//example_render_init();
-		title_screen_init();
+		example_render_init();
+		//title_screen_init();
 
 		//Random random = new Random(System.nanoTime());
 		boolean sleep = true;//random.nextBoolean();
@@ -61,8 +78,8 @@ public class App {
 			glfwPollEvents();
 
 			long render_start = System.nanoTime();
-			//example_render(frame);
-			title_screen_render(frame);
+			example_render(frame);
+			//title_screen_render(frame);
 			long render_end = System.nanoTime();
 
 			long end = System.nanoTime();
@@ -72,8 +89,8 @@ public class App {
 			++frame;
 		}
 
-		//example_render_cleanup();
-		title_screen_cleanup();
+		example_render_cleanup();
+		//title_screen_cleanup();
 
 		System.out.println("Sleep was " + sleep);
 	}
@@ -109,13 +126,15 @@ public class App {
 	private void title_screen_render(int frame) {
 		MemoryStack stack = MemoryStack.stackPush();
 
+		
+		
 		renderer.renderBatchStart();
 		int title_frame;
 		if (title_loop_complete) {
 			title_frame = title_background_frames.size() - 1;
 			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
 		} else {
-			title_frame = (frame / 20) % title_background_frames.size();
+			title_frame = (frame / 2) % title_background_frames.size();
 		}
 		renderer.batchImageScreenScaled(
 				title_background_frames.get(title_frame),
@@ -179,15 +198,16 @@ public class App {
 		int mouse_x = (int) Math.floor(raw_mouse_x.get(0));
 		int mouse_y = (int) Math.floor(raw_mouse_y.get(0));
 
-		FloatBuffer axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1);
-		float joy_x = axes.get(0);
-		float joy_y = -axes.get(1);
-		int pos_x = (int) (window_width.get(0) * (0.8f * 0.5f * joy_x + 0.5f));
-		int pos_y = (int) (window_height.get(0) * (0.8f * 0.5f * joy_y + 0.5f));
+		/*
+		 * FloatBuffer axes = glfwGetJoystickAxes(GLFW_JOYSTICK_1); float joy_x =
+		 * axes.get(0); float joy_y = -axes.get(1);
+		 */
+		int pos_x = (int) (window_width.get(0) * (0.8f * 0.5f * mouse_x + 0.5f));
+		int pos_y = (int) (window_height.get(0) * (0.8f * 0.5f * mouse_y + 0.5f));
 
 		renderer.batchImageScreenScaled(customer_a, 2, customer_a_x, 0f, 0.125f, 0.25f);
-		//renderer.batchImageScaled(customer_b, 3, mouse_x - 64, window_height.get(0) - mouse_y - 64, 128, 128);
-		renderer.batchImageScaled(customer_b, 3, pos_x - 64, pos_y - 64, 128, 128);
+		renderer.batchImageScaled(customer_b, 3, mouse_x - 64, window_height.get(0) - mouse_y - 64, 128, 128);
+		//renderer.batchImageScaled(customer_b, 3, pos_x - 64, pos_y - 64, 128, 128);
 		renderer.renderBatchEnd();
 
 		stack.pop();
