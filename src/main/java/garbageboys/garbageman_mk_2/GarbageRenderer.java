@@ -14,7 +14,10 @@ import java.nio.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map.Entry;
 
 import static org.lwjgl.glfw.Callbacks.*;
@@ -41,7 +44,7 @@ public class GarbageRenderer implements Render2D {
 		public int y;
 		public int full_width;
 		@SuppressWarnings("unused")
-		public int height;
+		public int full_height;
 	}
 
 	private class GarbageImage {
@@ -320,7 +323,7 @@ public class GarbageRenderer implements Render2D {
 		GarbageHandle handle = new GarbageHandle();
 		handle.file_name = resource;
 		handle.full_width = full_width.get(0);
-		handle.height = full_height.get(0);
+		handle.full_height = full_height.get(0);
 		handle.x = 0;
 		handle.y = 0;
 		images.put(handle, image);
@@ -342,13 +345,47 @@ public class GarbageRenderer implements Render2D {
 		GarbageHandle handle = new GarbageHandle();
 		handle.file_name = resource;
 		handle.full_width = full_width.get(0);
-		handle.height = full_height.get(0);
+		handle.full_height = full_height.get(0);
 		handle.x = x;
 		handle.y = y;
 		images.put(handle, image);
 
 		stack.pop();
 		return handle;
+	}
+
+	@SuppressWarnings("unchecked")
+	public List<Object> loadImageSeries(String resource, int width, int height, int frame_count) {
+		MemoryStack stack = stackPush();
+	
+		IntBuffer full_width = stack.mallocInt(1);
+		IntBuffer full_height = stack.mallocInt(1);
+		IntBuffer channels = stack.mallocInt(1);
+		ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+
+		List<GarbageHandle> handles = new ArrayList<GarbageHandle>();
+		handle_loop:
+		for (int j = 0; j <= full_height.get(0) - height; j += height) {
+			for (int i = 0; i <= full_width.get(0) - width; i += width) {
+				if (handles.size() == frame_count) {
+					break handle_loop;
+				}
+				GarbageImage image = new GarbageImage(0, -1, width, height);
+				GarbageHandle handle = new GarbageHandle();
+
+				handle.file_name = resource;
+				handle.full_width = full_width.get(0);
+				handle.full_height = full_height.get(0);
+				handle.x = i;
+				handle.y = j;
+				images.put(handle, image);
+				handles.add(handle);
+			}
+		}
+
+		stack.pop();
+		/* Java is paranoid... */
+		return (List<Object>) (Object) handles;
 	}
 
 	@Override
@@ -370,7 +407,7 @@ public class GarbageRenderer implements Render2D {
 			image.texture_id = 0;
 		}
 
-		int border_size = 1;
+		int border_size = 4;
 		int id = 0;
 		ArrayList<Rect> rects = new ArrayList<Rect>();
 		for (GarbageImage image : images.values()) {
@@ -491,7 +528,8 @@ public class GarbageRenderer implements Render2D {
 		}
 	}
 
-	/** Places textures into an atlas
+	/**
+	 * Places textures into an atlas
 	 * if img_flipped is true the image goes from this:
 	 * +----------+
 	 * |          |
@@ -536,19 +574,37 @@ public class GarbageRenderer implements Render2D {
 			}
 		}
 
-		float uv_width = (float) img_rect.width / atlas_width;
-		float uv_height = (float) img_rect.height / atlas_height;
+		/*
+		 * The subtraction of 1 and addition of 0.5 are to account for the fact
+		 * that uv coordinates are for the centers of the pixels. Therefore to
+		 * render the corner pixel at (0, 0) you would use (0.5, 0.5) in *screen
+		 * pixels*. Of course this must be then converted into the proper uv
+		 * domain.
+		 */
+		float uv_width = (img_rect.width - 1.0f) / (float) atlas_width;
+		float uv_height = (img_rect.height - 1.0f) / (float) atlas_height;
 		/* top left */
-		float uv_u = (float) img_rect.x / atlas_width;
-		float uv_v = (float) img_rect.y / atlas_height;
-		image.raw_uv_coordinates = new float[] {
-			uv_u, uv_v + uv_height,
-			uv_u + uv_width, uv_v + uv_height,
-			uv_u + uv_width, uv_v,
-			uv_u, uv_v + uv_height,
-			uv_u + uv_width, uv_v,
-		  uv_u, uv_v
-		};
+		float uv_u = (img_rect.x + 0.5f) / (float) atlas_width;
+		float uv_v = (img_rect.y + 0.5f) / (float) atlas_height;
+		if (!img_flipped) {
+			image.raw_uv_coordinates = new float[] {
+				uv_u, uv_v + uv_height,
+				uv_u + uv_width, uv_v + uv_height,
+				uv_u + uv_width, uv_v,
+				uv_u, uv_v + uv_height,
+				uv_u + uv_width, uv_v,
+			  uv_u, uv_v
+			};
+		} else {
+			image.raw_uv_coordinates = new float[] {
+					uv_u, uv_v,
+					uv_u, uv_v + uv_height,
+					uv_u + uv_width, uv_v + uv_height,
+					uv_u, uv_v,
+					uv_u + uv_width, uv_v + uv_height,
+					uv_u + uv_width, uv_v
+				};
+		}
 	}
 	
 	GarbageHandle find_image_handle(String file_name) {
@@ -637,8 +693,63 @@ public class GarbageRenderer implements Render2D {
 
 		int texture_location = glGetUniformLocation(program_id, "text");
 
-		for(Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
-    	assert(image.getValue().raw_triangle_data.length == 3 * 6);
+		ArrayList<GarbageImage> sorted_images = sort_garbage_images(images.values());
+		if (sorted_images.size() > 0) {
+			int texture_pos = sorted_images.get(0).texture_pos;
+			int i = 0;
+			ArrayList<Float> uv_coords = new ArrayList<Float>();
+			ArrayList<Float> triangle_coords = new ArrayList<Float>();
+			while (true) {
+				if (i == sorted_images.size() || texture_pos != sorted_images.get(i).texture_pos) {
+		  		FloatBuffer uv_buffer = BufferUtils.createFloatBuffer(uv_coords.size());
+		  		for (Float f : uv_coords) {
+		  			uv_buffer.put(f.floatValue());
+		  		}
+		  		uv_buffer.rewind();
+		  		FloatBuffer triangle_buffer = BufferUtils.createFloatBuffer(triangle_coords.size());
+		  		for (Float f : triangle_coords) {
+		  			triangle_buffer.put(f.floatValue());
+		  		}
+		  		triangle_buffer.rewind();
+
+					glBindBuffer(GL_ARRAY_BUFFER, vbo_uv.get(0));
+		  		check_gl_errors();
+		  		glBufferData(GL_ARRAY_BUFFER, uv_buffer, GL_STATIC_DRAW);
+		  		check_gl_errors();
+		  		glBindBuffer(GL_ARRAY_BUFFER, vbo.get(0));
+		  		check_gl_errors();
+		  		glBufferData(GL_ARRAY_BUFFER, triangle_buffer, GL_STATIC_DRAW);
+		  		check_gl_errors();
+
+		  		glUseProgram(program_id);
+		  		check_gl_errors();
+		  		glUniform1i(texture_location, texture_pos);
+		  		check_gl_errors();
+		  		glDrawArrays(GL_TRIANGLES, 0, triangle_coords.size());
+		  		check_gl_errors();
+
+		  		uv_coords.clear();
+		  		triangle_coords.clear();
+		  		if (i == sorted_images.size()) {
+		  			break;
+		  		} else {
+		  			texture_pos = sorted_images.get(i).texture_pos;
+		  		}
+				} else {
+					GarbageImage image = sorted_images.get(i);
+		    	assert(image.raw_triangle_data.length == 3 * 6);
+		    	assert(image.raw_uv_coordinates.length == 2 * 6);
+					for (float f : image.raw_uv_coordinates) {
+						uv_coords.add(f);
+					}
+					for (float f : image.raw_triangle_data) {
+						triangle_coords.add(f);
+					}
+					++i;
+				}
+			}
+		}
+		/*for(Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
 
   		glBindBuffer(GL_ARRAY_BUFFER, vbo_uv.get(0));
   		check_gl_errors();
@@ -655,7 +766,7 @@ public class GarbageRenderer implements Render2D {
   		check_gl_errors();
   		glDrawArrays(GL_TRIANGLES, 0, 6);
   		check_gl_errors();
-    }
+    }*/
 
 		long time_now = System.nanoTime();
 		long frame_time = time_now - last_frame_end;
@@ -684,6 +795,24 @@ public class GarbageRenderer implements Render2D {
 		glDeleteBuffers(vbo_uv);
 
 		stack.pop();
+	}
+
+	private ArrayList<GarbageImage> sort_garbage_images(Collection<GarbageImage> values) {
+		ArrayList<GarbageImage> images = new ArrayList<GarbageImage>();
+		images.addAll(values);
+		images.sort(new Comparator<GarbageImage>() {
+			@Override
+			public int compare(GarbageImage a, GarbageImage b) {
+				if (a.texture_pos == b.texture_pos) {
+					return 0;
+				} else if (a.texture_pos > b.texture_pos) {
+					return 1;
+				} else {
+					return -1;
+				}
+			}
+		});
+		return images;
 	}
 
 	@Override

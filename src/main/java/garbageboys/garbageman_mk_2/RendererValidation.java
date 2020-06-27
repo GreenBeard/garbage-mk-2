@@ -144,4 +144,19 @@ public class RendererValidation implements Render2D {
 		return actual_renderer.getHintSleep();
 	}
 
+	@Override
+	public List<Object> loadImageSeries(String resource, int width, int height, int frame_count) {
+		List<Object> handles = actual_renderer.loadImageSeries(resource, width, height, frame_count);
+		if (handles.size() != frame_count) {
+			throw new RuntimeException();
+		}
+		for (Object obj : handles) {
+			ImageInfo info = new ImageInfo();
+			info.object = obj;
+			info.loaded = false;
+			images.add(info);
+		}
+		return handles;
+	}
+
 }

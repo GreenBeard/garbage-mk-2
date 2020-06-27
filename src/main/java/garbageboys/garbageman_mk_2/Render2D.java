@@ -1,5 +1,7 @@
 package garbageboys.garbageman_mk_2;
 
+import java.util.List;
+
 public interface Render2D {
 
 	public void initialize();
@@ -23,6 +25,9 @@ public interface Render2D {
 	public Object loadImage(String resource);
 
 	public Object loadImage(String resource, int x, int y, int width, int height);
+
+	/* Loads a set of frames from an image in book reading format (top left to bottom right) */
+	public List<Object> loadImageSeries(String resource, int width, int height, int frame_count);
 
 	/**
 	 * Call after loading a set of files to prepare them for rendering.
