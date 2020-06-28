@@ -127,6 +127,9 @@ public class App {
 		for (Object obj : title_background_frames_1) {
 			renderer.unloadImage(obj);
 		}
+		for (Object obj : title_background_frames_2) {
+			renderer.unloadImage(obj);
+		}
 	}
 
 	private void title_screen_render(int frame) {
