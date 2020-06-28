@@ -2,7 +2,6 @@ package garbageboys.garbageman_mk_2;
 
 import java.io.IOException;
 import java.net.URL;
-import java.nio.IntBuffer;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -13,8 +12,6 @@ import javax.sound.sampled.Clip;
 import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
-
-import org.lwjgl.BufferUtils;
 
 public class DefaultSoundManager implements SoundManager {
 

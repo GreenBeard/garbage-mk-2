@@ -2,19 +2,13 @@ package garbageboys.garbageman_mk_2;
 
 import static org.lwjgl.glfw.GLFW.*;
 
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.DoubleBuffer;
-import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
-import java.nio.file.Paths;
 import java.util.List;
 
 import org.lwjgl.*;
 import org.lwjgl.glfw.GLFWJoystickCallback;
 import org.lwjgl.system.MemoryStack;
-
-import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
 
 public class App {
 
