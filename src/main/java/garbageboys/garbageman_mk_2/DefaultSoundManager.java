@@ -183,7 +183,7 @@ public class DefaultSoundManager implements SoundManager {
 
 	
 	@Override
-	public boolean checkSoundRunning(String resource) {
+	public boolean isSoundRunning(String resource) {
 		Clip c = clips.get(resource).clip;
 		return c.isRunning();
 	}
@@ -222,6 +222,10 @@ public class DefaultSoundManager implements SoundManager {
 		for(SoundTypes type : SoundTypes.values()) {
 			setTypeVolume(volumes.get(type), type);
 		}
+	}
+	
+	public float getMasterVolume() {
+		return masterVol;
 	}
 	
 }

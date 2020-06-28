@@ -10,12 +10,15 @@ import org.lwjgl.*;
 import org.lwjgl.glfw.GLFWJoystickCallback;
 import org.lwjgl.system.MemoryStack;
 
+import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
+
 public class App {
 
 	Render2D renderer;
 	SoundManager soundManager;
 	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
 	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
+	final String CHEERY = "/assets/Sounds/Songs/Cheery.wav";
 
 	public void run() {
 		System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -34,7 +37,10 @@ public class App {
 		
 		soundManager.loadSound(STARTUP_SOUND, SoundManager.SoundTypes.Effects);
 		soundManager.loadSound(TITLE_THEME, SoundManager.SoundTypes.Music);
+		soundManager.loadSound(CHEERY, SoundManager.SoundTypes.Music);
 		soundManager.setMasterVolume(-20f);
+		soundManager.setTypeVolume(0f, SoundTypes.Effects);
+		soundManager.setTypeVolume(-10f, SoundTypes.Music);
 		soundManager.playSound(STARTUP_SOUND);
 		
 
@@ -127,7 +133,7 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
-		if ((frame / 5) == title_background_frames_1.size()) {
+		if (frame == title_background_frames_1.size() * 5) {
 			title_loop_complete = true;
 			soundManager.loopSound(TITLE_THEME);
 		}
