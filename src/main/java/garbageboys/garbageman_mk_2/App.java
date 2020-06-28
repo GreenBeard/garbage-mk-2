@@ -14,11 +14,14 @@ import org.lwjgl.*;
 import org.lwjgl.glfw.GLFWJoystickCallback;
 import org.lwjgl.system.MemoryStack;
 
+import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
+
 public class App {
 
 	Render2D renderer;
-	
 	SoundManager soundManager;
+	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
+	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
 
 	public void run() {
 		System.out.println("Hello LWJGL " + Version.getVersion() + "!");
@@ -33,15 +36,11 @@ public class App {
 		renderer.initialize();
 		
 		soundManager = new DefaultSoundManager();
-	
-		String startupSound = "/assets/Sounds/SoundEffects/Startup.wav";
-		String backgroundMusic = "/assets/Sounds/Songs/Cheery.wav";
 		
 		
-		soundManager.loadSound(startupSound);
-		soundManager.loadSound(backgroundMusic);
-		soundManager.playSound(startupSound, null);
-		soundManager.playSound(backgroundMusic, null);
+		soundManager.loadSound(STARTUP_SOUND);
+		soundManager.loadSound(TITLE_THEME);
+		soundManager.playSound(STARTUP_SOUND, null);
 		
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
@@ -58,8 +57,8 @@ public class App {
 		GarbageRenderer real_renderer = (GarbageRenderer) ((RendererValidation) renderer).actual_renderer;
 		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
 
-		example_render_init();
-		//title_screen_init();
+		//example_render_init();
+		title_screen_init();
 
 		//Random random = new Random(System.nanoTime());
 		boolean sleep = true;//random.nextBoolean();
@@ -78,8 +77,8 @@ public class App {
 			glfwPollEvents();
 
 			long render_start = System.nanoTime();
-			example_render(frame);
-			//title_screen_render(frame);
+			//example_render(frame);
+			title_screen_render(frame);
 			long render_end = System.nanoTime();
 
 			long end = System.nanoTime();
@@ -89,14 +88,15 @@ public class App {
 			++frame;
 		}
 
-		example_render_cleanup();
-		//title_screen_cleanup();
+		//example_render_cleanup();
+		title_screen_cleanup();
 
 		System.out.println("Sleep was " + sleep);
 	}
 
 	Object play_button;
-	List<Object> title_background_frames;
+	List<Object> title_background_frames_1;
+	List<Object> title_background_frames_2;
 	boolean title_loop_complete = false;
 	Object crafting_screen;
 	Object customer_a_0;
@@ -112,13 +112,19 @@ public class App {
 	int circle_y = 0;
 	private void title_screen_init() {
 		play_button = renderer.loadImage("/assets/Buttons/play.png");
-		title_background_frames = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
+		title_background_frames_1 = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
+		title_background_frames_2 = renderer.loadImageSeries("/assets/Screens/mainTitle2.png", 384, 216, 9);
 		renderer.refreshImages();
+		SoundManager sound_manager = null;
+		/*sound_manager.loadSound(STARTUP_SOUND);
+		sound_manager.refreshSounds();
+		sound_manager.playSound(STARTUP_SOUND, SoundTypes.Effects);
+		sound_manager.unloadSound(STARTUP_SOUND);*/
 	}
 
 	private void title_screen_cleanup() {
 		renderer.unloadImage(play_button);
-		for (Object obj : title_background_frames) {
+		for (Object obj : title_background_frames_1) {
 			renderer.unloadImage(obj);
 		}
 	}
@@ -130,19 +136,24 @@ public class App {
 		
 		renderer.renderBatchStart();
 		int title_frame;
-		if (title_loop_complete) {
-			title_frame = title_background_frames.size() - 1;
-			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
-		} else {
-			title_frame = (frame / 2) % title_background_frames.size();
+		if ((frame / 5) == title_background_frames_1.size()) {
+			title_loop_complete = true;
+			soundManager.playSound(TITLE_THEME, null);
 		}
+		List<Object> current_frames;
+		if (title_loop_complete) {
+			current_frames = title_background_frames_2;
+			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
+		}
+		else {
+			current_frames = title_background_frames_1;
+		}
+		
+		title_frame = (frame / 5) % current_frames.size();
 		renderer.batchImageScreenScaled(
-				title_background_frames.get(title_frame),
+				current_frames.get(title_frame),
 				0, 0.0f, 0.0f, 1.0f, 1.0f);
 		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
-		if (title_frame == title_background_frames.size() - 1) {
-			title_loop_complete = true;
-		}
 		renderer.renderBatchEnd();
 
 		stack.pop();
