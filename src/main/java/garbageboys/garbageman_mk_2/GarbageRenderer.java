@@ -10,7 +10,6 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.net.URL;
 import java.nio.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -38,8 +37,6 @@ public class GarbageRenderer implements Render2D {
 
 	private int program_id;
 	
-	private URL TitleTagsFile;
-
 	private class GarbageHandle {
 		public String file_name;
 		/* (0,0) is the bottom left */
