@@ -10,17 +10,23 @@ import java.util.List;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
 import javax.sound.sampled.Clip;
+import javax.sound.sampled.FloatControl;
 import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.UnsupportedAudioFileException;
 
 import org.lwjgl.BufferUtils;
 
 public class DefaultSoundManager implements SoundManager {
-	
-	IntBuffer buffer = BufferUtils.createIntBuffer(1);
-	
-	HashMap<String, TypedClip> clips = new HashMap<String, TypedClip>();
 
+	private HashMap<SoundTypes, Float> volumes = new HashMap<SoundTypes, Float>();
+	private HashMap<String, TypedClip> clips = new HashMap<String, TypedClip>();
+	private float masterVol;
+	
+	public DefaultSoundManager() {
+		volumes.put(SoundTypes.Effects, new Float(1.0f));
+		volumes.put(SoundTypes.Music, new Float(1.0f));
+		masterVol = 1.0f;
+	}
 	
 	/**
 	 * Loads a sound given a resource name and a sound type. Don't include a full address, just do something like "/assets/Sounds/Songs/Chilly.wav/"
@@ -48,8 +54,9 @@ public class DefaultSoundManager implements SoundManager {
 			e.printStackTrace();
 			return false;
 		}
-		
-		clips.put(resource, new TypedClip(clip, type));
+		TypedClip tc = new TypedClip(clip, type);
+		clips.put(resource, tc);
+		setVolume(tc,volumes.get(type));
 		
 		return true;
 	}
@@ -177,6 +184,7 @@ public class DefaultSoundManager implements SoundManager {
 		}
 	}
 
+	
 	@Override
 	public boolean checkSoundRunning(String resource) {
 		Clip c = clips.get(resource).clip;
@@ -193,6 +201,32 @@ public class DefaultSoundManager implements SoundManager {
 			}
 		}
 		return list;
+	}
+
+	@Override
+	public boolean setTypeVolume(float volume, SoundTypes type) {
+		volumes.replace(type, volume);
+		for(TypedClip c : clips.values()) {
+			if(c.type.equals(type)) {
+				setVolume(c, volume);
+			}
+		}
+		return true;
+	}
+	
+	private void setVolume(TypedClip c, Float volume) {
+		FloatControl volControl = (FloatControl) c.clip.getControl(FloatControl.Type.MASTER_GAIN);
+		float range = volControl.getMaximum() - volControl.getMinimum();
+		float gain = (range * volume) + volControl.getMinimum();
+		volControl.setValue(gain);
+	}
+
+	@Override
+	public void setMasterVolume(float volume) {
+		masterVol = volume;
+		for(SoundTypes type : SoundTypes.values()) {
+			setTypeVolume(volumes.get(type), type);
+		}
 	}
 	
 }

@@ -47,5 +47,9 @@ public interface SoundManager {
     public boolean checkSoundRunning(String resource);
     
     public List<String> getRunningResources();
+    
+    public boolean setTypeVolume(float volume, SoundTypes type);
+    
+    public void setMasterVolume(float volume);
 
 }
