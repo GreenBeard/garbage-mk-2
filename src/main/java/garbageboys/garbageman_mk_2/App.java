@@ -134,7 +134,7 @@ public class App {
 		int title_frame;
 		if ((frame / 5) == title_background_frames_1.size()) {
 			title_loop_complete = true;
-			soundManager.playSound(TITLE_THEME);
+			soundManager.loopSound(TITLE_THEME);
 		}
 		List<Object> current_frames;
 		if (title_loop_complete) {

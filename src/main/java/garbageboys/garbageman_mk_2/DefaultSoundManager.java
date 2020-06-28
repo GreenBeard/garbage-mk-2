@@ -21,6 +21,11 @@ public class DefaultSoundManager implements SoundManager {
 	
 	HashMap<String, TypedClip> clips = new HashMap<String, TypedClip>();
 
+	
+	/**
+	 * Loads a sound given a resource name and a sound type. Don't include a full address, just do something like "/assets/Sounds/Songs/Chilly.wav/"
+	 * For that example, the type would be SoundManager.Music
+	 */
 	@Override
 	public boolean loadSound(String resource, SoundTypes type) {
 		
@@ -50,19 +55,25 @@ public class DefaultSoundManager implements SoundManager {
 	}
 
 	/**
-	 * Currently has no use. Might one day.
+	 * Currently has no use. Might one day. Feel free to call it after you load a sound.
 	 */
 	@Override
 	public void refreshSounds() {
 
 	}
 
+	/**
+	 * Plays a loaded sound. Throws a runtime exception if it isn't loaded/doesn't exist.
+	 */
 	@Override
 	public void playSound(String resource) {
 		Clip clip = clips.get(resource).clip;
 		clip.start();
 	}
 
+	/**
+	 * Stops any sounds of the given type. E.g. resetSounds(SoundManager.Music) will stop the background music.
+	 */
 	@Override
 	public void resetSounds(SoundTypes type) {
 		for(TypedClip c : clips.values()) {
@@ -72,24 +83,36 @@ public class DefaultSoundManager implements SoundManager {
 		}
 	}
 
+	/**
+	 * Plays a sound on infinite loop.
+	 */
 	@Override
 	public void loopSound(String resource) {
 		Clip clip = clips.get(resource).clip;
 		clip.loop(Clip.LOOP_CONTINUOUSLY);
 	}
 
+	/**
+	 * Stops a sound on loop gracefully. That is to say, the sound/song or whatever will finish but not play again.
+	 */
 	@Override
 	public void unloopSound(String resource) {
 		Clip c = clips.get(resource).clip;
 		c.loop(0);
 	}
 
+	/**
+	 * Abruptly stops a sound.
+	 */
 	@Override
 	public void stopSound(String resource) {
 		Clip c = clips.get(resource).clip;
 		c.stop();
 	}
 
+	/**
+	 * Unloads a loaded sound. Probably useful for doing something like unloading the intro roll.
+	 */
 	@Override
 	public boolean unloadSound(String resource) {
 		TypedClip clip = clips.get(resource);
@@ -99,7 +122,9 @@ public class DefaultSoundManager implements SoundManager {
 		return true;
 	}
 
-
+	/**
+	 * Unloads all sounds of a certain type. Very niche, may never be used.
+	 */
 	@Override
 	public boolean unloadSoundType(SoundTypes type) {
 		for(String s : clips.keySet()) {
@@ -113,7 +138,9 @@ public class DefaultSoundManager implements SoundManager {
 		return true;
 	}
 
-
+	/**
+	 * Unloads all sounds. Probably useful if we have an option to turn off all sounds, and could be called on exit.
+	 */
 	@Override
 	public boolean unloadAllSounds() {
 		for(TypedClip c : clips.values()) {
@@ -125,6 +152,12 @@ public class DefaultSoundManager implements SoundManager {
 		return false;
 	}
 
+	/**
+	 * An internal class that acts as a wrapper for a sound Clip object. Includes the sound's type, and not much else at the moment.
+	 * Might contain other info such as song length/size in the future.
+	 * @author Pangur
+	 *
+	 */
 	class TypedClip {
 		
 		public SoundTypes type;
