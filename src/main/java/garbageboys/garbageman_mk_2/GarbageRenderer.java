@@ -8,8 +8,10 @@ import org.lwjgl.system.*;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.net.URL;
 import java.nio.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -36,6 +38,8 @@ public class GarbageRenderer implements Render2D {
 	private long last_frame_end;
 
 	private int program_id;
+	
+	private URL TitleTagsFile;
 
 	private class GarbageHandle {
 		public String file_name;
@@ -132,7 +136,8 @@ public class GarbageRenderer implements Render2D {
 		glfwWindowHint(GLFW_SAMPLES, 4);
 
 		// Create the window
-		window = glfwCreateWindow(1600, 900, "Hello World!", NULL, NULL);
+		String titleText = ResourceLoader.getTitleText();
+		window = glfwCreateWindow(1600, 900, titleText, NULL, NULL);
 		if (window == NULL) {
 			throw new RuntimeException("Failed to create the GLFW window");
 		}
@@ -888,5 +893,7 @@ public class GarbageRenderer implements Render2D {
 	public long getHintSleep() {
 		return render_wait_time / 1000;
 	}
+	
+	
 
 }

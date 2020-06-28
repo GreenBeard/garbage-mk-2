@@ -3,6 +3,7 @@ package garbageboys.garbageman_mk_2;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -10,8 +11,14 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Random;
+import java.util.Scanner;
 
 public class ResourceLoader {
+	
+	static ArrayList<String> titles;
+	static String titleTagsName = "/TitleTags.txt/";
 	
 	public static URL FindResourceURL(String file_name) {
 		URL url = ResourceLoader.class.getClass().getResource(file_name);
@@ -63,6 +70,33 @@ public class ResourceLoader {
 
 			return img_out_buffer;
 		} catch (IOException | URISyntaxException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+	
+	public static String getTitleText() {
+		
+		if(titles == null) {
+			titles = getPossibleTitles();
+		}
+		
+		Random r = new Random();
+		
+		return titles.get(r.nextInt(titles.size()));
+	}
+	
+	private static ArrayList<String> getPossibleTitles() {
+		try {
+			Scanner reader = new Scanner(Paths.get(FindResourceURL(titleTagsName).toURI()).toFile());
+			ArrayList<String> t = new ArrayList<String>();
+			while(reader.hasNextLine()) {
+				t.add(reader.nextLine());
+			}
+			return t;
+		} catch (FileNotFoundException e) {
+			e.printStackTrace();
+		} catch (URISyntaxException e) {
 			e.printStackTrace();
 		}
 		return null;
