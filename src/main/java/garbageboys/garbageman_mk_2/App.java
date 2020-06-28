@@ -38,9 +38,9 @@ public class App {
 		soundManager = new DefaultSoundManager();
 		
 		
-		soundManager.loadSound(STARTUP_SOUND);
-		soundManager.loadSound(TITLE_THEME);
-		soundManager.playSound(STARTUP_SOUND, null);
+		soundManager.loadSound(STARTUP_SOUND, SoundManager.SoundTypes.Effects);
+		soundManager.loadSound(TITLE_THEME, SoundManager.SoundTypes.Music);
+		soundManager.playSound(STARTUP_SOUND);
 		
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
@@ -115,11 +115,6 @@ public class App {
 		title_background_frames_1 = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
 		title_background_frames_2 = renderer.loadImageSeries("/assets/Screens/mainTitle2.png", 384, 216, 9);
 		renderer.refreshImages();
-		SoundManager sound_manager = null;
-		/*sound_manager.loadSound(STARTUP_SOUND);
-		sound_manager.refreshSounds();
-		sound_manager.playSound(STARTUP_SOUND, SoundTypes.Effects);
-		sound_manager.unloadSound(STARTUP_SOUND);*/
 	}
 
 	private void title_screen_cleanup() {
@@ -132,13 +127,11 @@ public class App {
 	private void title_screen_render(int frame) {
 		MemoryStack stack = MemoryStack.stackPush();
 
-		
-		
 		renderer.renderBatchStart();
 		int title_frame;
 		if ((frame / 5) == title_background_frames_1.size()) {
 			title_loop_complete = true;
-			soundManager.playSound(TITLE_THEME, null);
+			soundManager.playSound(TITLE_THEME);
 		}
 		List<Object> current_frames;
 		if (title_loop_complete) {
