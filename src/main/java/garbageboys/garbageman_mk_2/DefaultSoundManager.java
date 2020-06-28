@@ -23,9 +23,9 @@ public class DefaultSoundManager implements SoundManager {
 	private float masterVol;
 	
 	public DefaultSoundManager() {
-		volumes.put(SoundTypes.Effects, new Float(1.0f));
-		volumes.put(SoundTypes.Music, new Float(1.0f));
-		masterVol = 1.0f;
+		volumes.put(SoundTypes.Effects, new Float(0f));
+		volumes.put(SoundTypes.Music, new Float(0f));
+		masterVol = 0f;
 	}
 	
 	/**
@@ -56,7 +56,7 @@ public class DefaultSoundManager implements SoundManager {
 		}
 		TypedClip tc = new TypedClip(clip, type);
 		clips.put(resource, tc);
-		setVolume(tc,volumes.get(type));
+		setVolume(volumes.get(type),tc,type);
 		
 		return true;
 	}
@@ -208,17 +208,15 @@ public class DefaultSoundManager implements SoundManager {
 		volumes.replace(type, volume);
 		for(TypedClip c : clips.values()) {
 			if(c.type.equals(type)) {
-				setVolume(c, volume);
+				setVolume(volume, c, type);
 			}
 		}
 		return true;
 	}
 	
-	private void setVolume(TypedClip c, Float volume) {
-		FloatControl volControl = (FloatControl) c.clip.getControl(FloatControl.Type.MASTER_GAIN);
-		float range = volControl.getMaximum() - volControl.getMinimum();
-		float gain = (range * volume) + volControl.getMinimum();
-		volControl.setValue(gain);
+	private void setVolume(float volume, TypedClip clip, SoundTypes type) {
+		FloatControl volControl = (FloatControl) clip.clip.getControl(FloatControl.Type.MASTER_GAIN);
+		volControl.setValue(masterVol + volumes.get(type));
 	}
 
 	@Override

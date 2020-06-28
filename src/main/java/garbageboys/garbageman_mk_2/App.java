@@ -40,7 +40,7 @@ public class App {
 		
 		soundManager.loadSound(STARTUP_SOUND, SoundManager.SoundTypes.Effects);
 		soundManager.loadSound(TITLE_THEME, SoundManager.SoundTypes.Music);
-		soundManager.setMasterVolume(.2f);
+		soundManager.setMasterVolume(-20f);
 		soundManager.playSound(STARTUP_SOUND);
 		
 
