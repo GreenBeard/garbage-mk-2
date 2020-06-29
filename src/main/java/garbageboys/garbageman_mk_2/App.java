@@ -39,8 +39,8 @@ public class App {
 		soundManager.loadSound(TITLE_THEME, SoundManager.SoundTypes.Music);
 		soundManager.loadSound(CHEERY, SoundManager.SoundTypes.Music);
 		soundManager.setMasterVolume(-20f);
-		soundManager.setTypeVolume(0f, SoundTypes.Effects);
-		soundManager.setTypeVolume(-10f, SoundTypes.Music);
+		soundManager.setTypeVolume(0f, SoundTypes.Effects, true);
+		soundManager.setTypeVolume(-10f, SoundTypes.Music, true);
 		soundManager.playSound(STARTUP_SOUND);
 		
 
@@ -83,9 +83,9 @@ public class App {
 			long render_end = System.nanoTime();
 
 			long end = System.nanoTime();
-			System.out.printf("Total Frame time %.2f ms Render Frame time %.2f ms\n",
-					(end - start) / (1000f * 1000f),
-					(render_end - render_start) / (1000f * 1000f));
+			//System.out.printf("Total Frame time %.2f ms Render Frame time %.2f ms\n",
+			//		(end - start) / (1000f * 1000f),
+			//		(render_end - render_start) / (1000f * 1000f));
 			++frame;
 		}
 
@@ -120,6 +120,7 @@ public class App {
 
 	private void title_screen_cleanup() {
 		renderer.unloadImage(play_button);
+		soundManager.unloadAllSounds();
 		for (Object obj : title_background_frames_1) {
 			renderer.unloadImage(obj);
 		}
@@ -136,6 +137,10 @@ public class App {
 		if (frame == title_background_frames_1.size() * 5) {
 			title_loop_complete = true;
 			soundManager.loopSound(TITLE_THEME);
+		}
+		if (frame == title_background_frames_1.size() * 5 + 100) {
+			soundManager.fadeOutSong(TITLE_THEME, 3000, -.6f);
+			soundManager.fadeInSong(CHEERY, SoundTypes.Music, 3000, .6f, true); //TODO: Bugfix
 		}
 		List<Object> current_frames;
 		if (title_loop_complete) {

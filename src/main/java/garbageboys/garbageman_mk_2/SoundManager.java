@@ -82,10 +82,14 @@ public interface SoundManager {
     
     public List<String> getRunningResources();
     
-    public boolean setTypeVolume(float volume, SoundTypes type);
+    public boolean setTypeVolume(float volume, SoundTypes type, boolean overrideRunningClips);
     
     public void setMasterVolume(float volume);
     
     public float getMasterVolume();
+    
+    public boolean fadeInSong(String resource, SoundTypes type, int millis, float intensity, boolean loop);
+
+	public boolean fadeOutSong(String resource, int millis, float intensity);
 
 }

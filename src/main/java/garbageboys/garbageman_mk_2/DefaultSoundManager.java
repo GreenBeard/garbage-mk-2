@@ -17,6 +17,7 @@ public class DefaultSoundManager implements SoundManager {
 
 	private HashMap<SoundTypes, Float> volumes = new HashMap<SoundTypes, Float>();
 	private HashMap<String, TypedClip> clips = new HashMap<String, TypedClip>();
+	private HashMap<String, TypedClip> runningClips = new HashMap<String, TypedClip>();
 	private float masterVol;
 	
 	public DefaultSoundManager() {
@@ -40,7 +41,6 @@ public class DefaultSoundManager implements SoundManager {
 			stream = AudioSystem.getAudioInputStream(url);
 			clip = AudioSystem.getClip();
 			clip.open(stream);
-			
 		} catch (UnsupportedAudioFileException e) {
 			e.printStackTrace();
 			return false;
@@ -51,7 +51,8 @@ public class DefaultSoundManager implements SoundManager {
 			e.printStackTrace();
 			return false;
 		}
-		TypedClip tc = new TypedClip(clip, type);
+		
+		TypedClip tc = new TypedClip(clip, type, resource);
 		clips.put(resource, tc);
 		setVolume(volumes.get(type),tc,type);
 		
@@ -71,8 +72,10 @@ public class DefaultSoundManager implements SoundManager {
 	 */
 	@Override
 	public void playSound(String resource) {
-		Clip clip = clips.get(resource).clip;
-		clip.start();
+		TypedClip clip = clips.get(resource);
+		Thread thread = new Thread(clip);
+		thread.start();
+		runningClips.put(resource,clip);
 	}
 
 	/**
@@ -80,9 +83,9 @@ public class DefaultSoundManager implements SoundManager {
 	 */
 	@Override
 	public void resetSounds(SoundTypes type) {
-		for(TypedClip c : clips.values()) {
-			if(c.type.equals(type)) {
-				c.clip.stop();
+		for(TypedClip c : clips.values()) { 
+			if(c.type.equals(type)) { 
+				c.stopClip();
 			}
 		}
 	}
@@ -92,8 +95,11 @@ public class DefaultSoundManager implements SoundManager {
 	 */
 	@Override
 	public void loopSound(String resource) {
-		Clip clip = clips.get(resource).clip;
-		clip.loop(Clip.LOOP_CONTINUOUSLY);
+		TypedClip clip = clips.get(resource);
+		Thread thread = new Thread(clip);
+		clip.setLoop(Clip.LOOP_CONTINUOUSLY);
+		thread.start();
+		runningClips.put(resource,clip);
 	}
 
 	/**
@@ -101,8 +107,8 @@ public class DefaultSoundManager implements SoundManager {
 	 */
 	@Override
 	public void unloopSound(String resource) {
-		Clip c = clips.get(resource).clip;
-		c.loop(0);
+		TypedClip c = clips.get(resource);
+		c.unloop();
 	}
 
 	/**
@@ -110,8 +116,8 @@ public class DefaultSoundManager implements SoundManager {
 	 */
 	@Override
 	public void stopSound(String resource) {
-		Clip c = clips.get(resource).clip;
-		c.stop();
+		TypedClip c = clips.get(resource);
+		c.stopClip();
 	}
 
 	/**
@@ -120,8 +126,7 @@ public class DefaultSoundManager implements SoundManager {
 	@Override
 	public boolean unloadSound(String resource) {
 		TypedClip clip = clips.get(resource);
-		clip.clip.stop();
-		clip.clip.close();
+		clip.stopClip();
 		clips.remove(resource);
 		return true;
 	}
@@ -134,9 +139,10 @@ public class DefaultSoundManager implements SoundManager {
 		for(String s : clips.keySet()) {
 			TypedClip c = clips.get(s);
 			if(c.type.equals(type)) {
-				c.clip.stop();
-				c.clip.close();
+				c.stopClip();
+				c.unload();
 				clips.remove(s);
+				runningClips.remove(c);
 			}
 		}
 		return true;
@@ -148,12 +154,12 @@ public class DefaultSoundManager implements SoundManager {
 	@Override
 	public boolean unloadAllSounds() {
 		for(TypedClip c : clips.values()) {
-			c.clip.stop();
-			c.clip.close();
+			c.stopClip();
+			c.unload();
 		}
-		
 		clips.clear();
-		return false;
+		runningClips.clear();
+		return true;
 	}
 
 	/**
@@ -162,22 +168,113 @@ public class DefaultSoundManager implements SoundManager {
 	 * @author Pangur
 	 *
 	 */
-	class TypedClip {
+	class TypedClip implements Runnable {
 		
 		public SoundTypes type;
-		public Clip clip;
+		private Clip clip;
+		public String resource;
 		
-		public TypedClip(Clip clip, SoundTypes type) {
+		private boolean running = false;
+		private boolean fading = false;
+		private boolean fadein = false;
+		
+		private final int THREAD_SLEEP_TIME = 100;
+		
+		private float millisLeft;
+		private float fadeIntensity;
+		private float intensity;
+		
+		private int loopTimes = 0;
+		
+		public TypedClip(Clip clip, SoundTypes type, String resource) {
 			this.clip = clip;
 			this.type = type;
+			this.resource = resource;
 		}
 		
+		public void setLoop(int b) {
+			this.loopTimes = b;
+		}
+
+		public void unloop() {
+			this.clip.loop(0);
+		}
+		
+		public void unload() {
+			clip.close();
+		}
+
 		public Clip getClip() {
 			return this.clip;
 		}
 		
 		public SoundTypes getType() {
 			return this.type;
+		}
+
+		@Override
+		public void run() {
+			clip.loop(loopTimes);
+			//System.out.println(clip.isRunning());
+			try {
+				Thread.sleep(1);					//This INFINITELY stupid sleep is because the thread associated with Java's clips doesn't initialize 
+			} catch (InterruptedException e1) {		//immediately or something. If this is taken out, if(!clip.isRunning()) will fail, and things get screwed up.
+				e1.printStackTrace();				//Very stupid fix, would be inefficient if this was called more than once per song.
+			}
+			this.running = true;
+			while(running) {
+				try {
+					if(fading || fadein) {
+						this.millisLeft -= THREAD_SLEEP_TIME;
+						modulateIntensity();
+						if(millisLeft <= 0 && fading) {
+							System.out.println("Faded out "+type+": "+resource);
+							stopClip();
+							fading = false;
+						}
+						if(millisLeft <= 0 && fadein) {
+							System.out.println("Faded in "+type+": "+resource);
+							FloatControl volControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+							volControl.setValue(masterVol + volumes.get(type));
+							fadein = false;
+						}
+					}
+					if(!clip.isRunning()) {
+						System.out.println("Stopped running: "+resource);
+						this.running = false;
+					}
+					Thread.sleep(THREAD_SLEEP_TIME);
+				}catch(InterruptedException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+		
+		public void stopClip(){
+			clip.stop();
+			this.running = false;
+		}
+		
+		public void doFadeOut(int millis, float fadeIntensity) {
+			System.out.println("Fading out "+type+": "+resource);
+			this.millisLeft = (float) millis;
+			this.fadeIntensity = fadeIntensity;
+			fading = true;
+			this.intensity = volumes.get(type) + masterVol;
+		}
+		
+		public void doFadeIn(int millis, float fadeIntensity) {
+			System.out.println("Fading in "+type+": "+resource);
+			this.millisLeft = (float) millis;
+			this.fadeIntensity = fadeIntensity;
+			fadein = true;
+			this.intensity = masterVol + volumes.get(type) - (fadeIntensity * (millis/100));
+		}
+		
+		private void modulateIntensity() {
+			FloatControl volControl = (FloatControl) clip.getControl(FloatControl.Type.MASTER_GAIN);
+			this.intensity += fadeIntensity;
+			volControl.setValue(this.intensity);
 		}
 	}
 
@@ -201,10 +298,10 @@ public class DefaultSoundManager implements SoundManager {
 	}
 
 	@Override
-	public boolean setTypeVolume(float volume, SoundTypes type) {
+	public boolean setTypeVolume(float volume, SoundTypes type, boolean overrideRunningClips) {
 		volumes.replace(type, volume);
 		for(TypedClip c : clips.values()) {
-			if(c.type.equals(type)) {
+			if(c.type.equals(type) && (overrideRunningClips || !c.clip.isRunning())) {
 				setVolume(volume, c, type);
 			}
 		}
@@ -220,12 +317,36 @@ public class DefaultSoundManager implements SoundManager {
 	public void setMasterVolume(float volume) {
 		masterVol = volume;
 		for(SoundTypes type : SoundTypes.values()) {
-			setTypeVolume(volumes.get(type), type);
+			setTypeVolume(volumes.get(type), type, true);
 		}
 	}
 	
 	public float getMasterVolume() {
 		return masterVol;
+	}
+
+	@Override
+	public boolean fadeOutSong(String resource, int millis, float intensity) {
+		TypedClip c = runningClips.get(resource);
+		if(c == null) return false;
+		c.doFadeOut(millis, intensity);
+		return true;
+	}
+
+	@Override
+	public boolean fadeInSong(String resource, SoundTypes type, int millis, float intensity, boolean loop) {
+		TypedClip c = clips.get(resource);
+		if(c == null) return false;
+		if(loop) {
+			loopSound(resource);
+		}
+		else{
+			playSound(resource);
+		}
+		FloatControl volControl = (FloatControl) c.clip.getControl(FloatControl.Type.MASTER_GAIN);
+		volControl.setValue(masterVol + volumes.get(type) - (intensity * (millis/100)));
+		c.doFadeIn(millis, intensity);
+		return true;
 	}
 	
 }

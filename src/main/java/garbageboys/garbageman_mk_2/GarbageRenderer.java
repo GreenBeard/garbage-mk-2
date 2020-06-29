@@ -786,9 +786,9 @@ public class GarbageRenderer implements Render2D {
 		//long swap_end = System.nanoTime();
 		//long real_swap_extra = swap_end - swap_start + render_wait_time;
 		setHintSleep((long) (0.8 * extra_frame_time));
-		System.out.printf("Render frame time %6.2f ms Next Delay %6.2f ms\n",
-				frame_time / (1000f * 1000f),
-				render_wait_time / (1000f * 1000f));
+		//System.out.printf("Render frame time %6.2f ms Next Delay %6.2f ms\n",
+		//		frame_time / (1000f * 1000f),
+		//		render_wait_time / (1000f * 1000f));
 
 		glDisableVertexAttribArray(0);
 		glDisableVertexAttribArray(1);
