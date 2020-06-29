@@ -18,12 +18,11 @@ public class DefaultSoundManager implements SoundManager {
 	private HashMap<SoundTypes, Float> volumes = new HashMap<SoundTypes, Float>();
 	private HashMap<String, TypedClip> clips = new HashMap<String, TypedClip>();
 	private HashMap<String, TypedClip> runningClips = new HashMap<String, TypedClip>();
-	private float masterVol;
+	private float masterVol = 0f;
 	
 	public DefaultSoundManager() {
 		volumes.put(SoundTypes.Effects, new Float(0f));
 		volumes.put(SoundTypes.Music, new Float(0f));
-		masterVol = 0f;
 	}
 	
 	/**
@@ -142,7 +141,7 @@ public class DefaultSoundManager implements SoundManager {
 				c.stopClip();
 				c.unload();
 				clips.remove(s);
-				runningClips.remove(c);
+				runningClips.remove(s);
 			}
 		}
 		return true;

@@ -7,7 +7,7 @@ public interface SoundManager {
 	enum SoundTypes {
 		Music,
 		Effects
-	};
+	}
 
 	/**
 	 * Loads an audio file. E.x. - loadSound("/assets/Sounds/Songs/Cheery.wav", SoundManager.SoundTypes.Music)
