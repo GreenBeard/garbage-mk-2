@@ -10,6 +10,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.MemoryStack;
 
 import junit.framework.TestCase;
@@ -78,7 +79,7 @@ public class PackTest extends TestCase {
 			ByteBuffer buffer = ResourceLoader.LoadTexture(file_name, width, height, channels);
 			if (buffer != null) {
 				Rect rect = new Rect();
-				rect.id = 0;
+				rect.user_data = null;
 				rect.width = width.get(0);
 				rect.height = height.get(0);
 		  	int new_area = rect.width * rect.height;
@@ -91,6 +92,7 @@ public class PackTest extends TestCase {
 		  	if (rect.width != 0 && rect.height != 0) {
 		  		inputs.add(rect);
 		  	}
+				STBImage.stbi_image_free(buffer);
 			}
 			stack.pop();
 	  }

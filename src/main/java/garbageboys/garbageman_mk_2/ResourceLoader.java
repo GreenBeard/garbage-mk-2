@@ -18,7 +18,7 @@ import java.util.Scanner;
 public class ResourceLoader {
 
 	static ArrayList<String> titles;
-	static String titleTagsName = "/TitleTags.txt/";
+	static String titleTagsName = "/TitleTags.txt";
 
 	public static URL FindResourceURL(String file_name) {
 		URL url = ResourceLoader.class.getClass().getResource(file_name);
@@ -77,7 +77,7 @@ public class ResourceLoader {
 	 * Returns a ByteBuffer with the raw texture or null on error
 	 * @param file_name - Technically a path relative to classes
 	 * @param channels - The number of channels the file actually had
-	 * @return
+	 * @return buffer with texture - must FREE with STBImage.stbi_image_free
 	 */
 	public static ByteBuffer LoadTexture(String file_name, IntBuffer width, IntBuffer height, IntBuffer channels) {
 		try {
@@ -110,16 +110,17 @@ public class ResourceLoader {
 
 	private static ArrayList<String> getPossibleTitles() {
 		try {
-			Scanner reader = new Scanner(Paths.get(FindResourceURL(titleTagsName).toURI()).toFile());
+			URL url = FindResourceURL(titleTagsName);
+			byte[] bytes = ReadAllBytes(url);
+			String file_data = new String(bytes);
+			Scanner reader = new Scanner(file_data);
 			ArrayList<String> t = new ArrayList<String>();
 			while (reader.hasNextLine()) {
 				t.add(reader.nextLine());
 			}
 			reader.close();
 			return t;
-		} catch (FileNotFoundException e) {
-			e.printStackTrace();
-		} catch (URISyntaxException e) {
+		} catch (IOException e) {
 			e.printStackTrace();
 		}
 		return null;

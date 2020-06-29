@@ -218,7 +218,7 @@ public class RectPacker {
 					Rect rect_flipped = new Rect();
 					rect_flipped.width = rect.height;
 					rect_flipped.height = rect.width;
-					rect_flipped.id = rect.id;
+					rect_flipped.user_data = rect.user_data;
 					PerimInfo flipped_info = place_maximize_perim(rect_flipped, placed, perim_tiles, filled_tiles, pack_width, pack_height);
 					if (flipped_info.perimeter != -1) {
 						//flipped_info.perimeter += (float) input_sorted.size() / max_input_sorted_size * Math.sqrt(rect_flipped.width * rect_flipped.height);

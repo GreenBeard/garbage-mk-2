@@ -104,6 +104,7 @@ public class RendererValidation implements Render2D {
 				break;
 			}
 		}
+		actual_renderer.unloadImage(image);
 	}
 
 	@Override

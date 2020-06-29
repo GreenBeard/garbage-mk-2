@@ -8,6 +8,7 @@ import java.util.List;
 
 import org.lwjgl.*;
 import org.lwjgl.glfw.GLFWJoystickCallback;
+import org.lwjgl.system.Configuration;
 import org.lwjgl.system.MemoryStack;
 
 import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
@@ -21,11 +22,13 @@ public class App {
 	final String CHEERY = "/assets/Sounds/Songs/Cheery.wav";
 
 	public void run() {
+		Configuration.DEBUG_MEMORY_ALLOCATOR.set(true);
 		System.out.println("Hello LWJGL " + Version.getVersion() + "!");
 
 		init();
 		game_loop_start();
 		renderer.cleanup();
+		System.out.println("Exiting\n");
 	}
 
 	private void init() {

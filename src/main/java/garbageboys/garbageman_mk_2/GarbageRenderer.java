@@ -4,6 +4,7 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.glfw.*;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GLXSGIVideoSync;
+import org.lwjgl.stb.STBImage;
 import org.lwjgl.system.*;
 
 import java.io.BufferedOutputStream;
@@ -14,7 +15,6 @@ import java.nio.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -36,43 +36,100 @@ public class GarbageRenderer implements Render2D {
 	private long last_frame_end;
 
 	private int program_id;
-	
-	private class GarbageHandle {
+
+	/*
+	 * GarbageImageID - A structure to quickly identify, and avoid duplication of textures in the atlas
+	 * AtlasInfo - used to hold temporal texture atlas data for a GarbageImageID (used in rendering)
+	 * GarbageHandle - used to render a specific copy of an image, and handle events (such as clicks)
+	 *
+	 * Code must maintain all GarbaeeImageID that are equal to have the same atlas_info in this class.
+	 * Meaning that code must first check if it is in atlas_images.
+	 */
+
+	private class AtlasInfo {
+		/* A texture is referred to through an ID and is bound to a texture unit.
+		 * It seems redudant to me, but that is just how openGL was made. I wonder if a texture may be
+		 * bound, and filled with data then rebound later to a texture unit if it wasn't deleted?
+		 */
+		public int texture_id;
+		public int texture_unit;
+		public float[] raw_uv_coordinates;
+		/* reference count */
+		public int ref_count;
+	}
+
+	private class GarbageImageID {
 		public String file_name;
 		/* (0,0) is the bottom left */
 		public int x;
 		public int y;
+		/* Full file image dimensions even if not fully used (for example a series of images, or clipped) */
 		public int full_width;
-		@SuppressWarnings("unused")
 		public int full_height;
-	}
-
-	private class GarbageImage {
-		public int tmp_id;
-		public int texture_id;
-		public int texture_pos;
-		/* Full image dimensions even if not fully used */
+		/* Image dimensions of rendered section */
 		public int width;
 		public int height;
-		public float[] raw_triangle_data;
-		public float[] raw_uv_coordinates;
-
-		public GarbageImage(int texture_id, int texture_pos, int width, int height) {
-			this.texture_id = texture_id;
-			this.texture_pos = texture_pos;
-			this.raw_triangle_data = null;
-			this.raw_uv_coordinates = null;
+		
+		public GarbageImageID(String file_name, int x, int y, int full_width, int full_height, int width, int height) {
+			this.file_name = file_name;
+			this.x = x;
+			this.y = y;
+			this.full_width = full_width;
+			this.full_height = full_height;
 			this.width = width;
 			this.height = height;
 		}
+
+		@Override
+		public int hashCode() {
+			final int prime = 31;
+			int result = 1;
+			result = prime * result + file_name.hashCode();
+			result = prime * result + full_height;
+			result = prime * result + full_width;
+			result = prime * result + height;
+			result = prime * result + width;
+			result = prime * result + x;
+			result = prime * result + y;
+			return result;
+		}
+		@Override
+		public boolean equals(Object obj) {
+			if (this == obj) {
+				return true;
+			} else if (obj instanceof GarbageImageID){
+				GarbageImageID other = (GarbageImageID) obj;
+				return other.x == this.x
+						&& other.y == this.y
+						&& other.full_width == this.full_width
+						&& other.full_height == this.full_height
+						&& other.width == this.width
+						&& other.height == this.height
+						&& other.file_name.equals(this.file_name);
+			} else {
+				return false;
+			}
+		}
 	}
 
-	private HashMap<GarbageHandle, GarbageImage> images;
-	
+	private class GarbageHandle {
+		public float[] raw_triangle_data;
+		public GarbageImageID image;
+	}
+
+	/* image id, reference count - allows for rendering a single object multiple times, but only
+	 * placing it in the texture atlas once.
+	 */
+	private HashMap<GarbageImageID, AtlasInfo> atlas_images;
+
+	/* Allows for easily rendering atlas_images multiple times in a single frame. */
+	/* Sorted in refreshImages, must be sorted before renderBatchEnd */
+	private ArrayList<GarbageHandle> sorted_image_handles;
+
 	private void resizeCallback(long window, int width, int height) {
 		glViewport(0, 0, width, height);
 	}
-	
+
 	enum RenderMode {
 		PLAIN,
 		VSYNC,
@@ -81,7 +138,7 @@ public class GarbageRenderer implements Render2D {
 		 */
 		VBLANK_SYNC
 	}
-	
+
 	private RenderMode render_mode = RenderMode.PLAIN;
 
 	public void setRenderMode(RenderMode render_mode) {
@@ -203,8 +260,11 @@ public class GarbageRenderer implements Render2D {
 		check_gl_errors();
 		glBindVertexArray(vao.get(0));
 		check_gl_errors();
+		/* TODO: call glDeleteVertexArrays */
 
-		images = new HashMap<>();
+		atlas_images = new HashMap<>();
+
+		sorted_image_handles = new ArrayList<>();
 
 		stack.pop();
 	}
@@ -218,6 +278,8 @@ public class GarbageRenderer implements Render2D {
 		// Terminate GLFW and free the error callback
 		glfwTerminate();
 		glfwSetErrorCallback(null).free();
+
+		GL.setCapabilities(null);
 	}
 
 	@Override
@@ -293,11 +355,8 @@ public class GarbageRenderer implements Render2D {
 		int max_textures = glGetInteger(GL_MAX_COMBINED_TEXTURE_IMAGE_UNITS);
 		boolean[] used = new boolean[max_textures];
 		Arrays.fill(used, false);
-		if (images.size() >= max_textures) {
-			throw new RuntimeException("Out of memory");
-		}
-		for (Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
-			int pos = image.getValue().texture_pos;
+		for (AtlasInfo atlas_info : atlas_images.values()) {
+			int pos = atlas_info.texture_unit;
 			if (pos >= 0) {
 				used[pos] = true;
 			}
@@ -311,58 +370,60 @@ public class GarbageRenderer implements Render2D {
 		return -1;
 	}
 
-	@Override
-	public Object loadImage(String resource) {
+	/* width = -1 for full_width (same for height) */
+	private GarbageHandle genericLoadImage(String resource, int x, int y, int width, int height) {
 		MemoryStack stack = stackPush();
 
 		IntBuffer full_width = stack.mallocInt(1);
 		IntBuffer full_height = stack.mallocInt(1);
 		IntBuffer channels = stack.mallocInt(1);
-		ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+		ByteBuffer texture = ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+		STBImage.stbi_image_free(texture);
 
-		GarbageImage image = new GarbageImage(0, -1, full_width.get(0), full_height.get(0));
+		if (width == -1) {
+			width = full_width.get(0);
+		}
+		if (height == -1) {
+			height = full_height.get(0);
+		}
+
+		GarbageImageID image_id = new GarbageImageID(resource, x, y, full_width.get(0), full_height.get(0), width, height);
 		GarbageHandle handle = new GarbageHandle();
-		handle.file_name = resource;
-		handle.full_width = full_width.get(0);
-		handle.full_height = full_height.get(0);
-		handle.x = 0;
-		handle.y = 0;
-		images.put(handle, image);
+		handle.image = image_id;
+
+		AtlasInfo atlas_info = atlas_images.get(image_id);
+		if (atlas_info != null) {
+			++atlas_info.ref_count;
+		} else {
+			atlas_info = new AtlasInfo();
+			atlas_info.ref_count = 1;
+			atlas_images.put(image_id, atlas_info);
+			sorted_image_handles.add(handle);
+		}
 
 		stack.pop();
 		return handle;
 	}
 
 	@Override
+	public Object loadImage(String resource) {
+		return genericLoadImage(resource, 0, 0, -1, -1);
+	}
+
+	@Override
 	public Object loadImage(String resource, int x, int y, int width, int height) {
-		MemoryStack stack = stackPush();
-
-		IntBuffer full_width = stack.mallocInt(1);
-		IntBuffer full_height = stack.mallocInt(1);
-		IntBuffer channels = stack.mallocInt(1);
-		ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
-
-		GarbageImage image = new GarbageImage(0, -1, width, height);
-		GarbageHandle handle = new GarbageHandle();
-		handle.file_name = resource;
-		handle.full_width = full_width.get(0);
-		handle.full_height = full_height.get(0);
-		handle.x = x;
-		handle.y = y;
-		images.put(handle, image);
-
-		stack.pop();
-		return handle;
+		return genericLoadImage(resource, x, y, width, height);
 	}
 
 	@SuppressWarnings("unchecked")
 	public List<Object> loadImageSeries(String resource, int width, int height, int frame_count) {
 		MemoryStack stack = stackPush();
-	
+
 		IntBuffer full_width = stack.mallocInt(1);
 		IntBuffer full_height = stack.mallocInt(1);
 		IntBuffer channels = stack.mallocInt(1);
-		ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+		ByteBuffer texture = ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+		STBImage.stbi_image_free(texture);
 
 		List<GarbageHandle> handles = new ArrayList<GarbageHandle>();
 		handle_loop:
@@ -371,15 +432,7 @@ public class GarbageRenderer implements Render2D {
 				if (handles.size() == frame_count) {
 					break handle_loop;
 				}
-				GarbageImage image = new GarbageImage(0, -1, width, height);
-				GarbageHandle handle = new GarbageHandle();
-
-				handle.file_name = resource;
-				handle.full_width = full_width.get(0);
-				handle.full_height = full_height.get(0);
-				handle.x = i;
-				handle.y = j;
-				images.put(handle, image);
+				GarbageHandle handle = genericLoadImage(resource, i, j, width, height);
 				handles.add(handle);
 			}
 		}
@@ -400,7 +453,7 @@ public class GarbageRenderer implements Render2D {
 			image_size = 2048;
 		}
 
-		for (GarbageImage image : images.values()) {
+		for (AtlasInfo image : atlas_images.values()) {
 			/* The specification says calling delete on currently unallocated images
 			   is fine */
 			glDeleteTextures(image.texture_id);
@@ -408,16 +461,13 @@ public class GarbageRenderer implements Render2D {
 			image.texture_id = 0;
 		}
 
-		int border_size = 4;
-		int id = 0;
+		final int border_size = 4;
 		ArrayList<Rect> rects = new ArrayList<Rect>();
-		for (GarbageImage image : images.values()) {
-			image.tmp_id = id++;
-
+		for (Entry<GarbageImageID, AtlasInfo> entry : atlas_images.entrySet()) {
 			Rect rect = new Rect();
-			rect.width = image.width + 2 * border_size;
-			rect.height = image.height + 2 * border_size;
-			rect.id = image.tmp_id;
+			rect.width = entry.getKey().width + 2 * border_size;
+			rect.height = entry.getKey().height + 2 * border_size;
+			rect.user_data = entry;
 			rects.add(rect);
 		}
 		while (true) {
@@ -426,8 +476,8 @@ public class GarbageRenderer implements Render2D {
 			boolean complete = packer.pack(rects, placed, image_size, image_size, 1, false);
 			ByteBuffer atlas_buffer = BufferUtils.createByteBuffer(image_size * image_size * 4);
 
-			int texture_pos = next_texture_id();
-			glActiveTexture(GL_TEXTURE0 + texture_pos);
+			int texture_unit = next_texture_id();
+			glActiveTexture(GL_TEXTURE0 + texture_unit);
 			IntBuffer texture_id = stack.mallocInt(1);
 			glGenTextures(texture_id);
 			glBindTexture(GL_TEXTURE_2D, texture_id.get(0));
@@ -436,13 +486,16 @@ public class GarbageRenderer implements Render2D {
 			IntBuffer height = stack.mallocInt(1);
 			IntBuffer channels = stack.mallocInt(1);
 			for (Rect rect : placed) {
-				remove_rect_by_id(rects, rect.id);
-				Entry<GarbageHandle, GarbageImage> entry = find_entry_by_id(rect.id);
+				remove_rect_by_user_data(rects, rect.user_data);
+				@SuppressWarnings("unchecked")
+				Entry<GarbageImageID, AtlasInfo> entry = (Entry<GarbageImageID, AtlasInfo>) rect.user_data;
 				ByteBuffer img_buffer = ResourceLoader.LoadTexture(entry.getKey().file_name, width, height, channels);
 
-				ByteBuffer img_buffer_cropped = crop_image_buffer(img_buffer, entry.getKey(), entry.getValue());
+				ByteBuffer img_buffer_cropped = crop_image_buffer(img_buffer, entry.getKey());
+				img_buffer.rewind();
+				STBImage.stbi_image_free(img_buffer);
 
-				entry.getValue().texture_pos = texture_pos;
+				entry.getValue().texture_unit = texture_unit;
 				entry.getValue().texture_id = texture_id.get(0);
 
 				Rect img_rect = new Rect();
@@ -450,19 +503,18 @@ public class GarbageRenderer implements Render2D {
 				img_rect.height = rect.height - 2 * border_size;
 				img_rect.x = rect.x + border_size;
 				img_rect.y = rect.y + border_size;
-				img_rect.id = rect.id;
-				if (entry.getValue().width == img_rect.width) {
-					assert(entry.getValue().height == img_rect.height);
+				if (entry.getKey().width == img_rect.width) {
+					assert(entry.getKey().height == img_rect.height);
 					place_image_rgba(entry.getValue(), atlas_buffer, image_size, image_size, img_buffer_cropped, img_rect, false);
-				} else if (entry.getValue().width == img_rect.height) {
-					assert(entry.getValue().height == img_rect.width);
+				} else if (entry.getKey().width == img_rect.height) {
+					assert(entry.getKey().height == img_rect.width);
 					place_image_rgba(entry.getValue(), atlas_buffer, image_size, image_size, img_buffer_cropped, img_rect, true);
 				} else {
 					assert(false);
 				}
 			}
 			atlas_buffer.rewind();
-			print_atlas(atlas_buffer, image_size, image_size, texture_pos);
+			print_atlas(atlas_buffer, image_size, image_size, texture_unit);
 			atlas_buffer.rewind();
 
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, image_size, image_size, 0, GL_RGBA, GL_UNSIGNED_BYTE, atlas_buffer);
@@ -474,14 +526,16 @@ public class GarbageRenderer implements Render2D {
 			}
 		}
 
+		sort_garbage_handles(sorted_image_handles);
+
 		stack.pop();
 	}
 
-	private ByteBuffer crop_image_buffer(ByteBuffer img_buffer, GarbageHandle key, GarbageImage value) {
-		ByteBuffer buffer = BufferUtils.createByteBuffer(4 * value.width * value.height);
-		for (int j = 0; j < value.height; ++j) {
-			for (int i = 0; i < value.width; ++i) {
-				img_buffer.position(4 * (key.x + i + key.full_width * (key.y + j)));
+	private ByteBuffer crop_image_buffer(ByteBuffer img_buffer, GarbageImageID img_info) {
+		ByteBuffer buffer = BufferUtils.createByteBuffer(4 * img_info.width * img_info.height);
+		for (int j = 0; j < img_info.height; ++j) {
+			for (int i = 0; i < img_info.width; ++i) {
+				img_buffer.position(4 * (img_info.x + i + img_info.full_width * (img_info.y + j)));
 				/* 4 for RGBA */
 				for (int k = 0; k < 4; ++k) {
 					buffer.put(img_buffer.get());
@@ -492,27 +546,18 @@ public class GarbageRenderer implements Render2D {
 		return buffer;
 	}
 
-	private void remove_rect_by_id(ArrayList<Rect> rects, int id) {
+	private void remove_rect_by_user_data(ArrayList<Rect> rects, Object user_data) {
 		for (int i = 0; i < rects.size(); ++i) {
-			if (rects.get(i).id == id) {
+			if (rects.get(i).user_data == user_data) {
 				rects.remove(i);
 				return;
 			}
 		}
 	}
 
-	private Entry<GarbageHandle, GarbageImage> find_entry_by_id(int id) {
-		for (Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
-			if (image.getValue().tmp_id == id) {
-				return image;
-			}
-		}
-		return null;
-	}
-
-	public void print_atlas(ByteBuffer img, int width, int height, int texture_pos) {
+	public void print_atlas(ByteBuffer img, int width, int height, int texture_unit) {
 		try {
-			File file = new File("./atlas_image_" + texture_pos + ".ppm");
+			File file = new File("./atlas_image_" + texture_unit + ".ppm");
 			BufferedOutputStream stream = new BufferedOutputStream(new  FileOutputStream(file));
 			stream.write(("P6 " + width + " " + height + " 255\n").getBytes(StandardCharsets.US_ASCII));
 			while (img.hasRemaining()) {
@@ -546,7 +591,7 @@ public class GarbageRenderer implements Render2D {
 	 * |          |
 	 * +----------+
 	 */
-	private void place_image_rgba(GarbageImage image,
+	private void place_image_rgba(AtlasInfo atlas_info,
 			ByteBuffer atlas_buffer, int atlas_width, int atlas_height,
 			ByteBuffer img_buffer, Rect img_rect, boolean img_flipped) {
 		/* RGBA */
@@ -588,7 +633,7 @@ public class GarbageRenderer implements Render2D {
 		float uv_u = (img_rect.x + 0.5f) / (float) atlas_width;
 		float uv_v = (img_rect.y + 0.5f) / (float) atlas_height;
 		if (!img_flipped) {
-			image.raw_uv_coordinates = new float[] {
+			atlas_info.raw_uv_coordinates = new float[] {
 				uv_u, uv_v + uv_height,
 				uv_u + uv_width, uv_v + uv_height,
 				uv_u + uv_width, uv_v,
@@ -597,7 +642,7 @@ public class GarbageRenderer implements Render2D {
 			  uv_u, uv_v
 			};
 		} else {
-			image.raw_uv_coordinates = new float[] {
+			atlas_info.raw_uv_coordinates = new float[] {
 					uv_u, uv_v,
 					uv_u, uv_v + uv_height,
 					uv_u + uv_width, uv_v + uv_height,
@@ -607,35 +652,24 @@ public class GarbageRenderer implements Render2D {
 				};
 		}
 	}
-	
-	GarbageHandle find_image_handle(String file_name) {
-		for (GarbageHandle handle : images.keySet()) {
-			if (handle.file_name == file_name) {
-				return handle;
-			}
-		}
-		return null;
-	}
-
-	Entry<GarbageHandle, GarbageImage> find_image_entry(String file_name) {
-		for (Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
-			if (image.getKey().file_name == file_name) {
-				return image;
-			}
-		}
-		return null;
-	}
 
 	@Override
-	public void unloadImage(Object handle) {
-		images.remove(handle);
+	public void unloadImage(Object raw_handle) {
+		GarbageHandle handle = (GarbageHandle) raw_handle;
+		AtlasInfo atlas_info = atlas_images.get(handle.image);
+		--atlas_info.ref_count;
+		if (atlas_info.ref_count == 0) {
+			atlas_images.remove(handle.image);
+			/* TODO: Check to delete texture_id if not in use */
+		}
+		sorted_image_handles.remove(handle);
 	}
 
 	@Override
 	public void renderBatchStart() {
 		// TODO improve
-    for(Entry<GarbageHandle, GarbageImage> image : images.entrySet()) {
-    	image.getValue().raw_triangle_data = new float[] {
+    for (GarbageHandle handle : sorted_image_handles) {
+    	handle.raw_triangle_data = new float[] {
     		0.0f, 0.0f, 0.0f,
     		0.0f, 0.0f, 0.0f,
     		0.0f, 0.0f, 0.0f,
@@ -694,14 +728,17 @@ public class GarbageRenderer implements Render2D {
 
 		int texture_location = glGetUniformLocation(program_id, "text");
 
-		ArrayList<GarbageImage> sorted_images = sort_garbage_images(images.values());
-		if (sorted_images.size() > 0) {
-			int texture_pos = sorted_images.get(0).texture_pos;
+		if (sorted_image_handles.size() > 0) {
+			int texture_unit = atlas_images.get(sorted_image_handles.get(0).image).texture_unit;
 			int i = 0;
 			ArrayList<Float> uv_coords = new ArrayList<Float>();
 			ArrayList<Float> triangle_coords = new ArrayList<Float>();
 			while (true) {
-				if (i == sorted_images.size() || texture_pos != sorted_images.get(i).texture_pos) {
+				/* Only initialized to null to make the dumb Java compiler happy,
+				 * it will always have a value before used */
+				AtlasInfo atlas_info = null;
+				if (i == sorted_image_handles.size()
+						|| texture_unit != (atlas_info = atlas_images.get(sorted_image_handles.get(i).image)).texture_unit) {
 		  		FloatBuffer uv_buffer = BufferUtils.createFloatBuffer(uv_coords.size());
 		  		for (Float f : uv_coords) {
 		  			uv_buffer.put(f.floatValue());
@@ -724,27 +761,27 @@ public class GarbageRenderer implements Render2D {
 
 		  		glUseProgram(program_id);
 		  		check_gl_errors();
-		  		glUniform1i(texture_location, texture_pos);
+		  		glUniform1i(texture_location, texture_unit);
 		  		check_gl_errors();
 		  		glDrawArrays(GL_TRIANGLES, 0, triangle_coords.size());
 		  		check_gl_errors();
 
 		  		uv_coords.clear();
 		  		triangle_coords.clear();
-		  		if (i == sorted_images.size()) {
+		  		if (i == sorted_image_handles.size()) {
 		  			break;
 		  		} else {
-		  			texture_pos = sorted_images.get(i).texture_pos;
+		  			texture_unit = atlas_info.texture_unit;
 		  		}
 				} else {
-					GarbageImage image = sorted_images.get(i);
-		    	assert(image.raw_triangle_data.length == 3 * 6);
-		    	assert(image.raw_uv_coordinates.length == 2 * 6);
-					for (float f : image.raw_uv_coordinates) {
-						uv_coords.add(f);
-					}
-					for (float f : image.raw_triangle_data) {
+					GarbageHandle handle = sorted_image_handles.get(i);
+		    	assert(handle.raw_triangle_data.length == 3 * 6);
+		    	assert(atlas_info.raw_uv_coordinates.length == 2 * 6);
+					for (float f : handle.raw_triangle_data) {
 						triangle_coords.add(f);
+					}
+					for (float f : atlas_info.raw_uv_coordinates) {
+						uv_coords.add(f);
 					}
 					++i;
 				}
@@ -763,7 +800,7 @@ public class GarbageRenderer implements Render2D {
 
   		glUseProgram(program_id);
   		check_gl_errors();
-  		glUniform1i(texture_location, image.getValue().texture_pos);
+  		glUniform1i(texture_location, image.getValue().texture_unit);
   		check_gl_errors();
   		glDrawArrays(GL_TRIANGLES, 0, 6);
   		check_gl_errors();
@@ -798,36 +835,38 @@ public class GarbageRenderer implements Render2D {
 		stack.pop();
 	}
 
-	private ArrayList<GarbageImage> sort_garbage_images(Collection<GarbageImage> values) {
-		ArrayList<GarbageImage> images = new ArrayList<GarbageImage>();
-		images.addAll(values);
-		images.sort(new Comparator<GarbageImage>() {
+	private ArrayList<GarbageHandle> sort_garbage_handles(ArrayList<GarbageHandle> handles) {
+		handles.sort(new Comparator<GarbageHandle>() {
 			@Override
-			public int compare(GarbageImage a, GarbageImage b) {
-				if (a.texture_pos == b.texture_pos) {
+			public int compare(GarbageHandle a, GarbageHandle b) {
+				/* TODO: Yikes make this faster (single lookup for each initially?) */
+				AtlasInfo a_info = atlas_images.get(a.image);
+				AtlasInfo b_info = atlas_images.get(b.image);
+				if (a_info.texture_unit == b_info.texture_unit) {
 					return 0;
-				} else if (a.texture_pos > b.texture_pos) {
+				} else if (a_info.texture_unit > b_info.texture_unit) {
 					return 1;
 				} else {
 					return -1;
 				}
 			}
 		});
-		return images;
+		return handles;
 	}
 
 	@Override
-	public void batchImage(Object handle, int layer, int x, int y) {
+	public void batchImage(Object raw_handle, int layer, int x, int y) {
+		GarbageHandle handle = (GarbageHandle) raw_handle;
+
 		MemoryStack stack = MemoryStack.stackPush();
 
-		GarbageImage image = images.get(handle);
 		IntBuffer raw_width = stack.mallocInt(1);
 		IntBuffer raw_height = stack.mallocInt(1);
 		glfwGetWindowSize(window, raw_width, raw_height);
 		float screen_width = raw_width.get(0);
 		float screen_height = raw_height.get(0);
 		batchImageScreenScaled(handle, layer, x / screen_width, y / screen_height,
-				image.width / screen_width, image.height / screen_height);
+				handle.image.width / screen_width, handle.image.height / screen_height);
 
 		stack.pop();
 	}
@@ -848,17 +887,18 @@ public class GarbageRenderer implements Render2D {
 	}
 
 	@Override
-	public void batchImageScreenScaled(Object handle, int layer, float x, float y, float width, float height) {
-		GarbageImage image = images.get(handle);
+	public void batchImageScreenScaled(Object raw_handle, int layer, float x, float y, float width, float height) {
+		GarbageHandle handle = (GarbageHandle) raw_handle;
+
 		float fixed_x = 2 * x - 1;
 		float fixed_y = 2 * y - 1;
 		float fixed_width = 2 * width;
 		float fixed_height = 2 * height;
-		batchImageRaw(image, layer, fixed_x, fixed_y, fixed_width, fixed_height);
+		batchImageRaw(handle, layer, fixed_x, fixed_y, fixed_width, fixed_height);
 	}
 	
-	private void batchImageRaw(GarbageImage image, int layer, float x, float y, float width, float height) {
-		image.raw_triangle_data = new float[] {
+	private void batchImageRaw(GarbageHandle handle, int layer, float x, float y, float width, float height) {
+		handle.raw_triangle_data = new float[] {
 				/* Triangle one */
 				x, y, -layer / 1000f,
 				x + width, y, -layer / 1000f,

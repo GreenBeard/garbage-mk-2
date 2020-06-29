@@ -39,7 +39,7 @@ public class DefaultSoundManager implements SoundManager {
 		
 		try {
 			stream = AudioSystem.getAudioInputStream(url);
-			clip = AudioSystem.getClip();
+			clip = AudioSystem.getClip(null);
 			clip.open(stream);
 		} catch (UnsupportedAudioFileException e) {
 			e.printStackTrace();
