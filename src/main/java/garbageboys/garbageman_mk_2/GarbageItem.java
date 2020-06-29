@@ -132,6 +132,14 @@ public class GarbageItem {
 		}
 		number_of_items = files.size();
 	}
+	
+	public static void delete_garbage_items(Render2D render) {
+		for (List<Object> list : images) {
+			for (Object image : list) {
+				render.unloadImage(image);
+			}
+		}
+	}
 
 	private int generate_identifier() {
 		Random rand = new Random(); 

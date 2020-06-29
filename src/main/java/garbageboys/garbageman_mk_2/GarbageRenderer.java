@@ -371,10 +371,18 @@ public class GarbageRenderer implements Render2D {
 		unhandled_events_lock = new ReentrantLock();
 
 		stack.pop();
+		
+		// Test garbage item functions
+		GarbageItem.init_garbage_items(this);
+		/*for (int i = 0; i < 100; i++) {
+			System.out.println(new GarbageItem().getName());
+		}*/
 	}
 
 	@Override
 	public void cleanup() {
+		GarbageItem.delete_garbage_items(this);
+		
 		// Free the window callbacks and destroy the window
 		glfwFreeCallbacks(window);
 		glfwDestroyWindow(window);
