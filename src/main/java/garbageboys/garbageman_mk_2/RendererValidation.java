@@ -160,4 +160,13 @@ public class RendererValidation implements Render2D {
 		return handles;
 	}
 
+	@Override
+	public void fillEventList(List<InteractEvents> events) {
+		if (!batch_mode) {
+			actual_renderer.fillEventList(events);
+		} else {
+			throw new RuntimeException();
+		}
+	}
+
 }

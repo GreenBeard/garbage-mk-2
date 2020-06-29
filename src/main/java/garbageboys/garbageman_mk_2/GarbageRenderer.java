@@ -19,6 +19,8 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import static org.lwjgl.glfw.Callbacks.*;
 import static org.lwjgl.glfw.GLFW.*;
@@ -113,6 +115,11 @@ public class GarbageRenderer implements Render2D {
 	}
 
 	private class GarbageHandle {
+		/* Has events propagate downward until the object handles that event */
+		@SuppressWarnings("unused")
+		public boolean scrollable;
+		public boolean clickable;
+
 		public float[] raw_triangle_data;
 		public GarbageImageID image;
 	}
@@ -126,8 +133,96 @@ public class GarbageRenderer implements Render2D {
 	/* Sorted in refreshImages, must be sorted before renderBatchEnd */
 	private ArrayList<GarbageHandle> sorted_image_handles;
 
+	private Lock unhandled_events_lock;
+	private ArrayList<InteractEvents> unhandled_events;
+
+	@Override
+	public void fillEventList(List<InteractEvents> events) {
+		unhandled_events_lock.lock();
+		try {
+			while (unhandled_events.size() > 0) {
+				events.add(unhandled_events.remove(0));
+			}
+		} finally {
+			unhandled_events_lock.unlock();
+		}
+	}
+
 	private void resizeCallback(long window, int width, int height) {
 		glViewport(0, 0, width, height);
+	}
+
+	private boolean inRectangle(GarbageHandle handle, int mouse_x, int mouse_y, int window_width, int window_height) {
+		float mouse_x_f = (float) mouse_x / window_width;
+		float mouse_y_f = (float) mouse_y / window_height;
+		float x_lower = handle.raw_triangle_data[0];
+		float y_lower = handle.raw_triangle_data[1];
+		float x_upper = handle.raw_triangle_data[6];
+		float y_upper = handle.raw_triangle_data[7];
+		if (x_lower <= mouse_x_f && mouse_x_f < x_upper
+				&& y_lower <= mouse_y_f && mouse_y_f < y_upper) {
+			return true;
+		} else {
+			return false;
+		}
+	}
+
+	protected void mouseCallback(long window, int button, int action, int mods) {
+		InteractEventType type;
+		switch (action) {
+		case GLFW_PRESS:
+			switch (button) {
+			case GLFW_MOUSE_BUTTON_1:
+				type = InteractEventType.LEFT_MOUSE_DOWN;
+				break;
+			case GLFW_MOUSE_BUTTON_2:
+				type = InteractEventType.RIGHT_MOUSE_DOWN;
+				break;
+			default:
+				return;
+			}
+			break;
+		case GLFW_RELEASE:
+			switch (button) {
+			case GLFW_MOUSE_BUTTON_1:
+				type = InteractEventType.LEFT_MOUSE_UP;
+				break;
+			case GLFW_MOUSE_BUTTON_2:
+				type = InteractEventType.RIGHT_MOUSE_UP;
+				break;
+			default:
+				return;
+			}
+			break;
+		default:
+			return;
+		}
+		MemoryStack stack = MemoryStack.stackPush();
+		DoubleBuffer x_pos = stack.mallocDouble(1);
+		DoubleBuffer y_pos = stack.mallocDouble(1);
+		glfwGetCursorPos(window, x_pos, y_pos);
+		IntBuffer window_width = stack.mallocInt(1);
+		IntBuffer window_height = stack.mallocInt(1);
+		glfwGetWindowSize(window, window_width, window_height);
+		unhandled_events_lock.lock();
+		try {
+			InteractEvents event = new InteractEvents();
+			event.handle = null;
+			event.mouse_x = (int) x_pos.get(0);
+			event.mouse_y = window_height.get(0) - (int) y_pos.get(0);
+			event.type = type;
+			/* Requires sorted_image_handles to be sorted */
+			for (GarbageHandle handle : sorted_image_handles) {
+				if (handle.clickable && inRectangle(handle, event.mouse_x, event.mouse_y, window_width.get(0), window_height.get(0))) {
+					event.handle = handle;
+					break;
+				}
+			}
+			unhandled_events.add(event);
+		} finally {
+			unhandled_events_lock.unlock();
+		}
+		stack.pop();
 	}
 
 	enum RenderMode {
@@ -240,6 +335,13 @@ public class GarbageRenderer implements Render2D {
 			}
 		});
 
+		glfwSetMouseButtonCallback(window, new GLFWMouseButtonCallback() {
+			@Override
+			public void invoke(long window, int button, int action, int mods) {
+				mouseCallback(window, button, action, mods);
+			}
+		});
+
 		System.out.println("OpenGL version: " + glGetString(GL_VERSION));
 		System.out.println("       device: " + glGetString(GL_RENDERER));
 		System.out.println("Monitor width: " + vidmode.width());
@@ -265,6 +367,8 @@ public class GarbageRenderer implements Render2D {
 		atlas_images = new HashMap<>();
 
 		sorted_image_handles = new ArrayList<>();
+
+		unhandled_events_lock = new ReentrantLock();
 
 		stack.pop();
 	}
@@ -667,6 +771,7 @@ public class GarbageRenderer implements Render2D {
 
 	@Override
 	public void renderBatchStart() {
+		unhandled_events_lock.lock();
 		// TODO improve
     for (GarbageHandle handle : sorted_image_handles) {
     	handle.raw_triangle_data = new float[] {
@@ -682,9 +787,10 @@ public class GarbageRenderer implements Render2D {
 
 	@Override
 	public void renderBatchEnd() {
+		unhandled_events_lock.unlock();
 		// Set the clear color
 		glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
-		
+
 		/* Clear the color, and z-depth buffers */
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -698,7 +804,7 @@ public class GarbageRenderer implements Render2D {
     	triangle_data.put(image.getValue().raw_triangle_data);
     }
 		triangle_data.rewind();*/
-		
+
 		IntBuffer vbo = stack.mallocInt(1);
 		glGenBuffers(vbo);
 		check_gl_errors();

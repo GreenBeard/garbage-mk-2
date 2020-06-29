@@ -3,14 +3,11 @@ package garbageboys.garbageman_mk_2;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.stb.STBImage;
 
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Random;

@@ -71,4 +71,23 @@ public interface Render2D {
 	 */
 	public void batchImageScreenScaled(Object image, int layer, float x, float y, float width, float height);
 
+	public enum InteractEventType {
+		LEFT_MOUSE_DOWN, LEFT_MOUSE_UP, RIGHT_MOUSE_DOWN, RIGHT_MOUSE_UP, SCROLL_UP, SCROLL_DOWN
+	}
+
+	public class InteractEvents {
+		/* null if nothing matched! */
+		public Object handle;
+		public InteractEventType type;
+		/* (0,0) is the bottom left */
+		public int mouse_x;
+		public int mouse_y;
+	}
+
+	/**
+	 * Adds unhandled events to the provided list. (This events are then considered handled.)
+	 * @param events - list to add events to
+	 */
+	public void fillEventList(List<InteractEvents> events);
+
 }
