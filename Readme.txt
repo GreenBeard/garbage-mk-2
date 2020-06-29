@@ -1,6 +1,6 @@
 INSTALLATION INSTRUCTIONS:
 For Eclipse:
-Clone the repository. Open Eclipse in whatever workspace you want this project in, and then go to
+Clone the repository. Open Eclipse in whatever workspace you want this project in, and then go to.
 file>import>Maven>Existing Maven Projects
 Hit Next, then Browse, and find the cloned repo. Hit select folder on it. 
 Select the pom.xml is selected in the "Projects" view in the Maven installer.
