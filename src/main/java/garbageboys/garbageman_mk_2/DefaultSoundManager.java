@@ -216,10 +216,12 @@ public class DefaultSoundManager implements SoundManager {
 		public void run() {
 			clip.loop(loopTimes);
 			//System.out.println(clip.isRunning());
-			try {
-				Thread.sleep(1);					//This INFINITELY stupid sleep is because the thread associated with Java's clips doesn't initialize 
-			} catch (InterruptedException e1) {		//immediately or something. If this is taken out, if(!clip.isRunning()) will fail, and things get screwed up.
-				e1.printStackTrace();				//Very stupid fix, would be inefficient if this was called more than once per song.
+			while(!clip.isRunning()) {
+				try {
+					Thread.sleep(1);					//This INFINITELY stupid sleep is because the thread associated with Java's clips doesn't initialize 
+				} catch (InterruptedException e1) {		//immediately or something. If this is taken out, if(!clip.isRunning()) will fail, and things get screwed up.
+					e1.printStackTrace();				//Very stupid fix, would be inefficient if this was called more than once per song.
+				}
 			}
 			this.running = true;
 			while(running) {

@@ -143,7 +143,7 @@ public class App {
 		}
 		if (frame == title_background_frames_1.size() * 5 + 100) {
 			soundManager.fadeOutSong(TITLE_THEME, 3000, -.6f);
-			soundManager.fadeInSong(CHEERY, SoundTypes.Music, 3000, .6f, true); //TODO: Bugfix
+			soundManager.fadeInSong(CHEERY, SoundTypes.Music, 3000, .6f, true);
 		}
 		List<Object> current_frames;
 		if (title_loop_complete) {
