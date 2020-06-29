@@ -31,7 +31,6 @@ public class DefaultSoundManager implements SoundManager {
 	 */
 	@Override
 	public boolean loadSound(String resource, SoundTypes type) {
-		
 		URL url = ResourceLoader.FindResourceURL(resource);
 		AudioInputStream stream = null;
 		Clip clip = null;

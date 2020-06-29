@@ -369,6 +369,7 @@ public class GarbageRenderer implements Render2D {
 		sorted_image_handles = new ArrayList<>();
 
 		unhandled_events_lock = new ReentrantLock();
+		unhandled_events = new ArrayList<>();
 
 		stack.pop();
 		
