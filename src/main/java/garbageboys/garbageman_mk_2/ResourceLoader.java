@@ -12,6 +12,7 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 import java.util.Scanner;
 
@@ -19,6 +20,7 @@ public class ResourceLoader {
 
 	static ArrayList<String> titles;
 	static String titleTagsName = "/TitleTags.txt";
+	static String ingredientsName = "/ingredients.tsv";
 
 	public static URL FindResourceURL(String file_name) {
 		URL url = ResourceLoader.class.getClass().getResource(file_name);
@@ -117,6 +119,24 @@ public class ResourceLoader {
 			ArrayList<String> t = new ArrayList<String>();
 			while (reader.hasNextLine()) {
 				t.add(reader.nextLine());
+			}
+			reader.close();
+			return t;
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+		return null;
+	}
+
+	public static ArrayList<ArrayList<String>> getIngredientData() {
+		try {
+			URL url = FindResourceURL(ingredientsName);
+			byte[] bytes = ReadAllBytes(url);
+			String file_data = new String(bytes);
+			Scanner reader = new Scanner(file_data);
+			ArrayList<ArrayList<String>> t = new ArrayList<ArrayList<String>>();
+			while (reader.hasNextLine()) {
+				t.add(new ArrayList<String>(Arrays.asList(reader.nextLine().split("\t", -1))));
 			}
 			reader.close();
 			return t;

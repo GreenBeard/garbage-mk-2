@@ -35,6 +35,12 @@ public class App {
 		renderer = new RendererValidation(GarbageRenderer.class);
 		renderer.initialize();
 		
+		// Test garbage item functions
+		GarbageItem.init_garbage_items(renderer);
+		/*for (int i = 0; i < 100; i++) {
+			System.out.println(new GarbageItem().getName());
+		}*/
+		
 		soundManager = new DefaultSoundManager();
 		
 		
