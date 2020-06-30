@@ -7,7 +7,7 @@ Select the pom.xml is selected in the "Projects" view in the Maven installer.
 Hit Next then Finish.
 
 LICENSING NOTES:
-All images made by Silas Kidd-Meyers.
+All images made by Silas Kidd-Meyers and Brett Zonick.
 All music (in the resources/assets/Sounds/Songs folder) made by Silas Kidd-Meyers.
 Sound effects (in the resources/assets/Sounds/SoundEffects folder) made by Silas Kidd-Meyers, Brett Zonick, or sourced 
 from soundjay.com.
