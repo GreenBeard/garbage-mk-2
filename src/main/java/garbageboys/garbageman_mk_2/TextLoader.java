@@ -9,6 +9,7 @@ import java.util.List;
  * @author Silas
  *
  */
+
 public class TextLoader implements TextManager {
 
 	@Override
@@ -17,9 +18,14 @@ public class TextLoader implements TextManager {
 		int i;
 		char temp;//temporarily stores current char
 		String resource = "munroFont.png";
+		Render2D renderer;
+		renderer = new RendererValidation(GarbageRenderer.class);
+		
+		
 		for(i=0;i<text.length();i++)
 		{
-			
+			Object fontImage = renderer.loadImage(resource);
+			renderer.batchImageScreenScaled(fontImage, 2, x, y, int width, int height);
 		}
 		
 	}
