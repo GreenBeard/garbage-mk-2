@@ -3,7 +3,7 @@
  */
 package garbageboys.garbageman_mk_2;
 
-import java.util.List;
+import java.util.ArrayList;
 
 /**
  * @author Silas
@@ -11,7 +11,10 @@ import java.util.List;
  */
 
 public class TextLoader implements TextManager {
-
+	ArrayList<Object> charlist = new ArrayList<Object>(75);
+	
+	charlist.add(10);
+	
 	@Override
 	public void openText(String text, int max_height, int width, int x, int y) {
 		// TODO Auto-generated method stub
