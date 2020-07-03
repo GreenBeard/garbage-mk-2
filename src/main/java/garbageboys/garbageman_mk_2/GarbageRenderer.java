@@ -374,7 +374,7 @@ public class GarbageRenderer implements Render2D {
 		stack.pop();
 		
 		// Test garbage item functions
-		GarbageItem.init_garbage_items(this);
+		GarbageLoader.init_garbage_items(this);
 		/*for (int i = 0; i < 100; i++) {
 			System.out.println(new GarbageItem().getName());
 		}*/
@@ -382,7 +382,7 @@ public class GarbageRenderer implements Render2D {
 
 	@Override
 	public void cleanup() {
-		GarbageItem.delete_garbage_items(this);
+		GarbageLoader.delete_garbage_items(this);
 		
 		// Free the window callbacks and destroy the window
 		glfwFreeCallbacks(window);
