@@ -1044,7 +1044,24 @@ public class GarbageRenderer implements Render2D {
 	public long getHintSleep() {
 		return render_wait_time / 1000;
 	}
-	
-	
+
+	@Override
+	public void setIcon(String resource) {
+		MemoryStack stack = stackPush();
+
+		IntBuffer full_width = stack.mallocInt(1);
+		IntBuffer full_height = stack.mallocInt(1);
+		IntBuffer channels = stack.mallocInt(1);
+		ByteBuffer icon = ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+		GLFWImage img = GLFWImage.malloc();
+		img.set(full_width.get(), full_height.get(), icon);
+		GLFWImage.Buffer buff = GLFWImage.malloc(1);
+		buff.put(img);
+		buff.position(0);
+		glfwSetWindowIcon(window, buff);
+		buff.free();
+		img.free();
+		STBImage.stbi_image_free(icon);
+	}
 
 }

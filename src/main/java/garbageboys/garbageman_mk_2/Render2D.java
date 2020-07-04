@@ -89,5 +89,7 @@ public interface Render2D {
 	 * @param events - list to add events to
 	 */
 	public void fillEventList(List<InteractEvents> events);
+	
+	public void setIcon(String resource);
 
 }

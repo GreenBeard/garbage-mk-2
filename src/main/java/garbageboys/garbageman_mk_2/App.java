@@ -1,6 +1,7 @@
 package garbageboys.garbageman_mk_2;
 
 import static org.lwjgl.glfw.GLFW.*;
+import static org.lwjgl.system.MemoryStack.stackPush;
 
 import java.nio.DoubleBuffer;
 import java.nio.IntBuffer;
@@ -22,6 +23,11 @@ public class App {
 	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
 	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
 	final String CHEERY = "/assets/Sounds/Songs/Cheery.wav";
+	final String ICON0 = "/assets/Icons/Garbagecan0.png";
+	final String ICON1 = "/assets/Icons/Garbagecan1.png";
+	final String ICON2 = "/assets/Icons/Garbagecan2.png";
+	final String ICON3 = "/assets/Icons/Garbagecan3.png";
+	final String ICON4 = "/assets/Icons/Garbagecan4.png";
 
 	public void run() {
 		Configuration.DEBUG_MEMORY_ALLOCATOR.set(true);
@@ -54,6 +60,9 @@ public class App {
 			if (key == GLFW_KEY_ESCAPE && action == GLFW_RELEASE) {
 				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
 			}
+			if (key == GLFW_KEY_TAB && action == GLFW_RELEASE) {
+				
+			}
 		});
 	}
 
@@ -62,10 +71,11 @@ public class App {
 
 		GarbageRenderer real_renderer = (GarbageRenderer) ((RendererValidation) renderer).actual_renderer;
 		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
-
+		real_renderer.setIcon(ICON0);
+		
 		//example_render_init();
 		title_screen_init();
-
+		
 		//Random random = new Random(System.nanoTime());
 		boolean sleep = true;//random.nextBoolean();
 		while (!glfwWindowShouldClose(renderer.getWindowID())) {
@@ -96,13 +106,14 @@ public class App {
 
 		//example_render_cleanup();
 		title_screen_cleanup();
-
+		
 		System.out.println("Sleep was " + sleep);
 	}
 
 	Object play_button;
 	List<Object> title_background_frames_1;
 	List<Object> title_background_frames_2;
+	List<Object> window_icons;
 	boolean title_loop_complete = false;
 	Object crafting_screen;
 	Object customer_a_0;
@@ -116,10 +127,13 @@ public class App {
 
 	int circle_x = 0;
 	int circle_y = 0;
+	
+	int counter = 0;
+	
 	private void title_screen_init() {
 		play_button = renderer.loadImage("/assets/Buttons/play.png");
 		title_background_frames_1 = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
-		title_background_frames_2 = renderer.loadImageSeries("/assets/Screens/mainTitle2.png", 384, 216, 9);
+		title_background_frames_2 = renderer.loadImageSeries("/assets/Screens/mainTitle2.png", 384, 216, 10);
 		renderer.refreshImages();
 	}
 
@@ -139,6 +153,24 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
+		
+		if(counter == 300) {
+			renderer.setIcon(ICON1);
+		}
+		if(counter == 600) {
+			renderer.setIcon(ICON2);
+		}
+		if(counter == 900) {
+			renderer.setIcon(ICON3);
+		}
+		if(counter == 1200) {
+			renderer.setIcon(ICON4);
+		}
+		if(counter == 1500) {
+			renderer.setIcon(ICON0);
+			counter = 0;
+		}
+		
 		if (frame == title_background_frames_1.size() * 5) {
 			title_loop_complete = true;
 			soundManager.loopSound(TITLE_THEME);
@@ -163,7 +195,7 @@ public class App {
 				0, 0.0f, 0.0f, 1.0f, 1.0f);
 		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
 		renderer.renderBatchEnd();
-
+		counter++;
 		stack.pop();
 	}
 
