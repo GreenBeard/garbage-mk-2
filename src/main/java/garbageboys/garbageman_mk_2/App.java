@@ -18,6 +18,7 @@ import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
 public class App {
 
 	Render2D renderer;
+	TextManager text;
 	SoundManager soundManager;
 	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
 	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
@@ -35,6 +36,7 @@ public class App {
 
 	private void init() {
 		renderer = new RendererValidation(GarbageRenderer.class);
+		//text = new TextLoader();
 		renderer.initialize();
 		
 		soundManager = new DefaultSoundManager();
@@ -43,9 +45,9 @@ public class App {
 		soundManager.loadSound(STARTUP_SOUND, SoundManager.SoundTypes.Effects);
 		soundManager.loadSound(TITLE_THEME, SoundManager.SoundTypes.Music);
 		soundManager.loadSound(CHEERY, SoundManager.SoundTypes.Music);
-		soundManager.setMasterVolume(-20f);
+		soundManager.setMasterVolume(-10f);
 		soundManager.setTypeVolume(0f, SoundTypes.Effects, true);
-		soundManager.setTypeVolume(-10f, SoundTypes.Music, true);
+		soundManager.setTypeVolume(10f, SoundTypes.Music, true);
 		soundManager.playSound(STARTUP_SOUND);
 		
 
@@ -132,6 +134,7 @@ public class App {
 		for (Object obj : title_background_frames_2) {
 			renderer.unloadImage(obj);
 		}
+		//text.cleanupText();
 	}
 
 	private void title_screen_render(int frame) {
@@ -139,6 +142,7 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
+		//text.openText("Does this work", 1f, 0, 0, 85, 100);
 		if (frame == title_background_frames_1.size() * 5) {
 			title_loop_complete = true;
 			soundManager.loopSound(TITLE_THEME);

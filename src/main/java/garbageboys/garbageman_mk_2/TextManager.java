@@ -13,12 +13,15 @@ public interface TextManager {
 	 * @return true on success
 	 */
 	public void openText(String text, 
-							int max_height, 
-							int width, 
-							int x,
-							int y);
+						float size,
+						int x,
+						int y,
+						int max_height, 
+						int width 
+						);
 	
 	public void closeText(String text);
 	
+	public void cleanupText();
 
 }
