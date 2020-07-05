@@ -16,8 +16,8 @@ import java.util.Scanner;
 public class ResourceLoader {
 
 	static ArrayList<String> titles;
-	static String titleTagsName = "/TitleTags.txt";
-	static String ingredientsName = "/ingredients.tsv";
+	static final String TITLE_TAGS_NAME = "/TitleTags.txt";
+	static final String INGREDIENTS_NAME = "/ingredients.tsv";
 
 	public static URL FindResourceURL(String file_name) {
 		URL url = ResourceLoader.class.getClass().getResource(file_name);
@@ -109,7 +109,7 @@ public class ResourceLoader {
 
 	private static ArrayList<String> getPossibleTitles() {
 		try {
-			URL url = FindResourceURL(titleTagsName);
+			URL url = FindResourceURL(TITLE_TAGS_NAME);
 			byte[] bytes = ReadAllBytes(url);
 			String file_data = new String(bytes);
 			Scanner reader = new Scanner(file_data);
@@ -127,7 +127,7 @@ public class ResourceLoader {
 
 	public static ArrayList<ArrayList<String>> getIngredientData() {
 		try {
-			URL url = FindResourceURL(ingredientsName);
+			URL url = FindResourceURL(INGREDIENTS_NAME);
 			byte[] bytes = ReadAllBytes(url);
 			String file_data = new String(bytes);
 			Scanner reader = new Scanner(file_data);

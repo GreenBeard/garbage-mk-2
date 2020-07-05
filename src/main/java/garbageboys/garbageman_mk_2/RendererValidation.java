@@ -169,4 +169,9 @@ public class RendererValidation implements Render2D {
 		}
 	}
 
+	@Override
+	public void setIcon(String resource) {
+		actual_renderer.setIcon(resource);
+	}
+
 }
