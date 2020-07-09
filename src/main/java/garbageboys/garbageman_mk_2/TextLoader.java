@@ -42,7 +42,7 @@ public class TextLoader implements TextManager {
 		//!
 		temp_text = new TextCharacter(33, 586, bot_y, width_1);
 		char_list.add(1, temp_text);
-		
+				
 		//#
 		temp_text = new TextCharacter(35, 705, bot_y-10, width_4);
 		char_list.add(3, temp_text);
@@ -350,7 +350,7 @@ public class TextLoader implements TextManager {
 		int i; 
 		int curr_width = 0;
 		int curr_height = 0;
-		renderer = new RendererValidation(GarbageRenderer.class);
+		renderer = App.get_renderer();
 		renderer.renderBatchStart();
 		//finds index of image
 		for(i=0;i<text.length();i++)

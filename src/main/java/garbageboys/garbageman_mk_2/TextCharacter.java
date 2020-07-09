@@ -7,7 +7,6 @@ public class TextCharacter {
 	int width;
 	int height;
 	
-	Render2D renderer;
 	Object fontImage;
 	
 	public TextCharacter(int a, int x_pos, int y_pos, int w) {
@@ -16,8 +15,7 @@ public class TextCharacter {
 		y = y_pos;
 		width = w;
 		height = 85;
-		renderer = new RendererValidation(GarbageRenderer.class);
-		fontImage = renderer.loadImage("munroFont.png", x, y, width, height);
+		fontImage = App.get_renderer().loadImage("/munroFont.png", x, y, width, height);
 	}
 }
 

@@ -18,8 +18,8 @@ import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
 
 public class App {
 
-	Render2D renderer;
-	TextManager text;
+	static Render2D renderer;
+	//TextManager text;
 	SoundManager soundManager;
 	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
 	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
@@ -39,10 +39,14 @@ public class App {
 		renderer.cleanup();
 		System.out.println("Exiting\n");
 	}
+	
+	public static Render2D get_renderer()
+	{
+		return renderer;
+	}
 
 	private void init() {
 		renderer = new RendererValidation(GarbageRenderer.class);
-		//text = new TextLoader();
 		renderer.initialize();
 		
 		soundManager = new DefaultSoundManager();
@@ -75,6 +79,7 @@ public class App {
 		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
 		real_renderer.setIcon(ICON0);
 		
+		//text = new TextLoader();
 		//example_render_init();
 		title_screen_init();
 		
@@ -156,9 +161,8 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
-<<<<<<< HEAD
-		//text.openText("Does this work", 1f, 0, 0, 85, 100);
-=======
+		//text.openText("GARBAGEMAN: One mans trash is anothers treasure", 1f, 0, 0, 85, 100);
+
 		
 		if(counter == 300) {
 			renderer.setIcon(ICON1);
@@ -177,7 +181,6 @@ public class App {
 			counter = 0;
 		}
 		
->>>>>>> f91486be7e1ee03792341f83a3ce7744d2706392
 		if (frame == title_background_frames_1.size() * 5) {
 			title_loop_complete = true;
 			soundManager.loopSound(TITLE_THEME);
