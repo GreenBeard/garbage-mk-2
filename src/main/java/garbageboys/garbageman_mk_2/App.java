@@ -19,7 +19,7 @@ import garbageboys.garbageman_mk_2.SoundManager.SoundTypes;
 public class App {
 
 	static Render2D renderer;
-	//TextManager text;
+	TextManager text;
 	SoundManager soundManager;
 	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
 	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
@@ -79,7 +79,7 @@ public class App {
 		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
 		real_renderer.setIcon(ICON0);
 		
-		//text = new TextLoader();
+		text = new TextLoader();
 		//example_render_init();
 		title_screen_init();
 		
@@ -153,7 +153,7 @@ public class App {
 		for (Object obj : title_background_frames_2) {
 			renderer.unloadImage(obj);
 		}
-		//text.cleanupText();
+		text.cleanupText();
 	}
 
 	private void title_screen_render(int frame) {
@@ -161,7 +161,7 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
-		//text.openText("GARBAGEMAN: One mans trash is anothers treasure", 1f, 0, 0, 85, 100);
+		text.openText("GARBAGEMAN: One mans trash is anothers treasure", 1f, 0, 0, 85, 100);
 
 		
 		if(counter == 300) {
