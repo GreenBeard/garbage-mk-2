@@ -351,8 +351,6 @@ public class TextLoader implements TextManager {
 		int curr_width = 0;
 		int curr_height = 0;
 		renderer = App.get_renderer();
-		renderer.renderBatchStart();
-		//finds index of image
 		for(i=0;i<text.length();i++)
 		{
 			curr_width += char_list.get(text.charAt(i)).width * size;
@@ -378,7 +376,7 @@ public class TextLoader implements TextManager {
 	@Override
 	public void closeText(String text) {
 		// TODO Auto-generated method stub
-		renderer.renderBatchEnd();
+
 	}
 	
 	@Override
