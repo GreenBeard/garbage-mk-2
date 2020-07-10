@@ -65,6 +65,10 @@ public class TextLoader implements TextManager {
 		temp_text = new TextCharacter(38, 917, bot_y, 75);
 		char_list.put(6, temp_text);
 		
+		//'
+		temp_text = new TextCharacter(40, 1259, bot_y, width_1);
+		char_list.put(7, temp_text);
+		
 		//(
 		temp_text = new TextCharacter(40, 553, bot_y, width_5);
 		char_list.put(8, temp_text);
@@ -369,7 +373,7 @@ public class TextLoader implements TextManager {
 			if(curr_width >= width)
 			{
 				curr_width = 0;
-				curr_height += char_list.get(text.charAt(i) - 32).height * size;
+				curr_height -= char_list.get(text.charAt(i) - 32).height * size;
 				if(curr_height >= max_height)
 					return;
 				
@@ -377,7 +381,7 @@ public class TextLoader implements TextManager {
 			renderer.batchImageScreenScaled(char_list.get(text.charAt(i) - 32).fontImage, 
 											2, 
 											x+curr_width, 
-											y+curr_height, 
+											y-curr_height, 
 											(char_list.get(text.charAt(i) - 32).width * size) / (int) window_width.get(0), 
 											(char_list.get(text.charAt(i) - 32).height * size) / (int) window_height.get(0)
 											);
