@@ -3,7 +3,12 @@
  */
 package garbageboys.garbageman_mk_2;
 
+import static org.lwjgl.glfw.GLFW.glfwGetWindowSize;
+
+import java.nio.IntBuffer;
 import java.util.HashMap;
+
+import org.lwjgl.system.MemoryStack;
 
 /**
  * @author Silas
@@ -18,9 +23,10 @@ public class TextLoader implements TextManager {
 	
 	public TextLoader()
 	{
-		int bot_y = 305;
-		int mid_y = 201;
-		int top_y = 85;
+		int bot_y = 10;
+		int mid_y = 114;
+		int top_y = 230;
+		
 		int width_1 = 16;
 		int width_5 = 25;
 		int width_2 = 40;
@@ -36,7 +42,7 @@ public class TextLoader implements TextManager {
 		//0123456789 ()!@#$%&.,?;:
 
 		//SPACE
-		temp_text = new TextCharacter(32, 1200, bot_y+10, width_3);
+		temp_text = new TextCharacter(32, 1200, bot_y-10, width_3);
 		char_list.put(0, temp_text);
 		
 		//!
@@ -44,11 +50,11 @@ public class TextLoader implements TextManager {
 		char_list.put(1, temp_text);
 				
 		//#
-		temp_text = new TextCharacter(35, 705, bot_y-10, width_4);
+		temp_text = new TextCharacter(35, 705, bot_y+10, width_4);
 		char_list.put(3, temp_text);
 		
 		//$
-		temp_text = new TextCharacter(36, 775, bot_y+10, width_2);
+		temp_text = new TextCharacter(36, 775, bot_y-10, width_2);
 		char_list.put(4, temp_text);
 		
 		//%
@@ -68,7 +74,7 @@ public class TextLoader implements TextManager {
 		char_list.put(9, temp_text);
 		
 		//,
-		temp_text = new TextCharacter(44, 1027, bot_y+10, width_1);
+		temp_text = new TextCharacter(44, 1027, bot_y-10, width_1);
 		char_list.put(12, temp_text);
 		
 		//.
@@ -260,7 +266,7 @@ public class TextLoader implements TextManager {
 		char_list.put(70, temp_text);
 		
 		//g
-		temp_text = new TextCharacter(103, 318, top_y+25, width_3);
+		temp_text = new TextCharacter(103, 318, top_y-25, width_3);
 		char_list.put(71, temp_text);
 		
 		//h
@@ -296,11 +302,11 @@ public class TextLoader implements TextManager {
 		char_list.put(79, temp_text);
 		
 		//p
-		temp_text = new TextCharacter(112, 780, top_y+25, width_3);
+		temp_text = new TextCharacter(112, 780, top_y-25, width_3);
 		char_list.put(80, temp_text);
 		
 		//q
-		temp_text = new TextCharacter(113, 838, top_y+25, width_4);
+		temp_text = new TextCharacter(113, 838, top_y-25, width_4);
 		char_list.put(81, temp_text);
 		
 		//r
@@ -332,7 +338,7 @@ public class TextLoader implements TextManager {
 		char_list.put(88, temp_text);
 		
 		//y
-		temp_text = new TextCharacter(121, 1333, top_y+25, width_3);
+		temp_text = new TextCharacter(121, 1333, top_y-25, width_3);
 		char_list.put(89, temp_text);
 		
 		//z
@@ -351,26 +357,32 @@ public class TextLoader implements TextManager {
 		int curr_width = 0;
 		int curr_height = 0;
 		renderer = App.get_renderer();
+		
+		MemoryStack stack = MemoryStack.stackPush();
+		IntBuffer window_width = stack.mallocInt(1);
+		IntBuffer window_height = stack.mallocInt(1);
+		glfwGetWindowSize(renderer.getWindowID(), window_width, window_height);//gets window size
+		
 		for(i=0;i<text.length();i++)
 		{
-			curr_width += char_list.get(text.charAt(i)).width * size;
+			curr_width += char_list.get(text.charAt(i) - 32).width * size;
 			if(curr_width >= width)
 			{
 				curr_width = 0;
-				curr_height += char_list.get(text.charAt(i)).height * size;
+				curr_height += char_list.get(text.charAt(i) - 32).height * size;
 				if(curr_height >= max_height)
 					return;
 				
 			}
-			renderer.batchImageScreenScaled(char_list.get(text.charAt(i)).fontImage, 
+			renderer.batchImageScreenScaled(char_list.get(text.charAt(i) - 32).fontImage, 
 											2, 
 											x+curr_width, 
 											y+curr_height, 
-											char_list.get(text.charAt(i)).width * size, 
-											char_list.get(text.charAt(i)).height * size
+											(char_list.get(text.charAt(i) - 32).width * size) / (int) window_width.get(0), 
+											(char_list.get(text.charAt(i) - 32).height * size) / (int) window_height.get(0)
 											);
 		}
-		
+		stack.pop();
 	}
 
 	@Override

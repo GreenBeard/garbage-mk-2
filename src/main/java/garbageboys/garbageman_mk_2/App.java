@@ -82,7 +82,7 @@ public class App {
 		text = new TextLoader();
 		//example_render_init();
 		title_screen_init();
-		
+
 		//Random random = new Random(System.nanoTime());
 		boolean sleep = true;//random.nextBoolean();
 		while (!glfwWindowShouldClose(renderer.getWindowID())) {
@@ -161,7 +161,7 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
-		text.openText("GARBAGEMAN: One mans trash is anothers treasure", 1f, 0, 0, 85, 100);
+		text.openText("GARBAGEMAN: Trash to one man is food to another", 1f, 0, 0, 85, 100);
 
 		
 		if(counter == 300) {
