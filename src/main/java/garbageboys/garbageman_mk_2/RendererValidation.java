@@ -189,4 +189,15 @@ public class RendererValidation implements Render2D {
 		actual_renderer.setIcon(resource);
 	}
 
+	@Override
+	public Object duplicateHandle(Object handle) {
+		/* TODO: validate handles not being used after freed */
+		return actual_renderer.duplicateHandle(handle);
+	}
+
+	@Override
+	public void deduplicateHandle(Object handle) {
+		actual_renderer.deduplicateHandle(handle);
+	}
+
 }

@@ -130,8 +130,7 @@ public class GarbageRenderer implements Render2D {
 	private HashMap<GarbageImageID, AtlasInfo> atlas_images;
 
 	/* Allows for easily rendering atlas_images multiple times in a single frame. */
-	/* Sorted in refreshImages, must be sorted before renderBatchEnd */
-	private ArrayList<GarbageHandle> sorted_image_handles;
+	private ArrayList<GarbageHandle> image_handles;
 
 	private Lock unhandled_events_lock;
 	private ArrayList<InteractEvents> unhandled_events;
@@ -212,7 +211,7 @@ public class GarbageRenderer implements Render2D {
 			event.mouse_y = window_height.get(0) - (int) y_pos.get(0);
 			event.type = type;
 			/* Requires sorted_image_handles to be sorted */
-			for (GarbageHandle handle : sorted_image_handles) {
+			for (GarbageHandle handle : image_handles) {
 				if (handle.clickable && inRectangle(handle, event.mouse_x, event.mouse_y, window_width.get(0), window_height.get(0))) {
 					event.handle = handle;
 					break;
@@ -366,7 +365,7 @@ public class GarbageRenderer implements Render2D {
 
 		atlas_images = new HashMap<>();
 
-		sorted_image_handles = new ArrayList<>();
+		image_handles = new ArrayList<>();
 
 		unhandled_events_lock = new ReentrantLock();
 		unhandled_events = new ArrayList<>();
@@ -511,11 +510,27 @@ public class GarbageRenderer implements Render2D {
 			atlas_info = new AtlasInfo();
 			atlas_info.ref_count = 1;
 			atlas_images.put(image_id, atlas_info);
-			sorted_image_handles.add(handle);
+			image_handles.add(handle);
 		}
 
 		stack.pop();
 		return handle;
+	}
+
+	@Override
+	public Object duplicateHandle(Object raw_handle) {
+		GarbageHandle handle = (GarbageHandle) raw_handle;
+		GarbageHandle dup_handle = new GarbageHandle();
+		dup_handle.image = handle.image;
+		dup_handle.clickable = false;
+		dup_handle.scrollable = false;
+		image_handles.add(dup_handle);
+		return dup_handle;
+	}
+
+	@Override
+	public void deduplicateHandle(Object handle) {
+		image_handles.remove(handle);
 	}
 
 	@Override
@@ -667,8 +682,6 @@ public class GarbageRenderer implements Render2D {
 			}
 		}
 
-		sort_garbage_handles(sorted_image_handles);
-
 		stack.pop();
 	}
 
@@ -813,14 +826,14 @@ public class GarbageRenderer implements Render2D {
 			atlas_images.remove(handle.image);
 			/* TODO: Check to delete texture_id if not in use */
 		}
-		sorted_image_handles.remove(handle);
+		image_handles.remove(handle);
 	}
 
 	@Override
 	public void renderBatchStart() {
 		unhandled_events_lock.lock();
 		// TODO improve
-    for (GarbageHandle handle : sorted_image_handles) {
+    for (GarbageHandle handle : image_handles) {
     	handle.raw_triangle_data = new float[] {
     		0.0f, 0.0f, 0.0f,
     		0.0f, 0.0f, 0.0f,
@@ -835,6 +848,8 @@ public class GarbageRenderer implements Render2D {
 	@Override
 	public void renderBatchEnd() {
 		unhandled_events_lock.unlock();
+		sort_garbage_handles(image_handles);
+
 		// Set the clear color
 		glClearColor(0.0f, 0.0f, 0.4f, 0.0f);
 
@@ -881,8 +896,8 @@ public class GarbageRenderer implements Render2D {
 
 		int texture_location = glGetUniformLocation(program_id, "text");
 
-		if (sorted_image_handles.size() > 0) {
-			int texture_unit = atlas_images.get(sorted_image_handles.get(0).image).texture_unit;
+		if (image_handles.size() > 0) {
+			int texture_unit = atlas_images.get(image_handles.get(0).image).texture_unit;
 			int i = 0;
 			ArrayList<Float> uv_coords = new ArrayList<Float>();
 			ArrayList<Float> triangle_coords = new ArrayList<Float>();
@@ -890,8 +905,8 @@ public class GarbageRenderer implements Render2D {
 				/* Only initialized to null to make the dumb Java compiler happy,
 				 * it will always have a value before used */
 				AtlasInfo atlas_info = null;
-				if (i == sorted_image_handles.size()
-						|| texture_unit != (atlas_info = atlas_images.get(sorted_image_handles.get(i).image)).texture_unit) {
+				if (i == image_handles.size()
+						|| texture_unit != (atlas_info = atlas_images.get(image_handles.get(i).image)).texture_unit) {
 		  		FloatBuffer uv_buffer = BufferUtils.createFloatBuffer(uv_coords.size());
 		  		for (Float f : uv_coords) {
 		  			uv_buffer.put(f.floatValue());
@@ -921,13 +936,13 @@ public class GarbageRenderer implements Render2D {
 
 		  		uv_coords.clear();
 		  		triangle_coords.clear();
-		  		if (i == sorted_image_handles.size()) {
+		  		if (i == image_handles.size()) {
 		  			break;
 		  		} else {
 		  			texture_unit = atlas_info.texture_unit;
 		  		}
 				} else {
-					GarbageHandle handle = sorted_image_handles.get(i);
+					GarbageHandle handle = image_handles.get(i);
 		    	assert(handle.raw_triangle_data.length == 3 * 6);
 		    	assert(atlas_info.raw_uv_coordinates.length == 2 * 6);
 					for (float f : handle.raw_triangle_data) {

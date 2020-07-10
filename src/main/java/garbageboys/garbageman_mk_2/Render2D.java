@@ -26,6 +26,19 @@ public interface Render2D {
 
 	public Object loadImage(String resource, int x, int y, int width, int height);
 
+	/**
+	 * Duplicates a handle as a *light* copy. Light copies must be freed with
+	 * deduplicate, and they do not support callbacks (e.g. click events).
+	 * Additionally, the handle is only valid so long as the original isn't
+	 * unloaded.
+	 */
+	public Object duplicateHandle(Object handle);
+
+	/**
+	 * Deduplicates a handle as a *light* copy.
+	 */
+	public void deduplicateHandle(Object handle);
+
 	/* Loads a set of frames from an image in book reading format (bottom left to top right)
 	 * (left to right then up a row, repeated) */
 	public List<Object> loadImageSeries(String resource, int width, int height, int frame_count);
