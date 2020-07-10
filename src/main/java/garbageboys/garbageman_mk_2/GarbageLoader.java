@@ -98,7 +98,7 @@ public class GarbageLoader {
 				switch (title.toLowerCase()) {
 				case "file": {
 					files.add(cell);
-					List<Object> image = renderer.loadImageSeries("/assets/Garbage/" + cell, 32, 32, 3);
+					List<Object> image = renderer.loadImageSeriesTopLeft("/assets/Garbage/" + cell, 32, 32, 3);
 					images.add(image);
 					break;
 				}

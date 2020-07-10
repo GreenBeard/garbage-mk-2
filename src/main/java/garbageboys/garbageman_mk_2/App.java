@@ -139,8 +139,8 @@ public class App {
 	
 	private void title_screen_init() {
 		play_button = renderer.loadImage("/assets/Buttons/play.png");
-		title_background_frames_1 = renderer.loadImageSeries("/assets/Screens/mainTitle.png", 384, 216, 23);
-		title_background_frames_2 = renderer.loadImageSeries("/assets/Screens/mainTitle2.png", 384, 216, 10);
+		title_background_frames_1 = renderer.loadImageSeriesTopLeft("/assets/Screens/mainTitle.png", 384, 216, 23);
+		title_background_frames_2 = renderer.loadImageSeriesTopLeft("/assets/Screens/mainTitle2.png", 384, 216, 10);
 		renderer.refreshImages();
 	}
 
@@ -277,7 +277,7 @@ public class App {
 	private void example_render_init() {
 		play_button = renderer.loadImage("/assets/Buttons/play.png");
 		crafting_screen = renderer.loadImage("/assets/Screens/craftingScreen.png");
-		List<Object> customer_a_series = renderer.loadImageSeries("/assets/Customers/Alan.png", 128, 128, 4);
+		List<Object> customer_a_series = renderer.loadImageSeriesTopLeft("/assets/Customers/Alan.png", 128, 128, 4);
 		customer_a_0 = customer_a_series.get(0);
 		customer_a_1 = customer_a_series.get(1);
 		customer_a_2 = customer_a_series.get(2);

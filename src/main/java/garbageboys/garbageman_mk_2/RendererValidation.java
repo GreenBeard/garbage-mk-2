@@ -161,6 +161,21 @@ public class RendererValidation implements Render2D {
 	}
 
 	@Override
+	public List<Object> loadImageSeriesTopLeft(String resource, int width, int height, int frame_count) {
+		List<Object> handles = actual_renderer.loadImageSeriesTopLeft(resource, width, height, frame_count);
+		if (handles.size() != frame_count) {
+			throw new RuntimeException();
+		}
+		for (Object obj : handles) {
+			ImageInfo info = new ImageInfo();
+			info.object = obj;
+			info.loaded = false;
+			images.add(info);
+		}
+		return handles;
+	}
+
+	@Override
 	public void fillEventList(List<InteractEvents> events) {
 		if (!batch_mode) {
 			actual_renderer.fillEventList(events);

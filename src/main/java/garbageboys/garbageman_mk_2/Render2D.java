@@ -26,8 +26,12 @@ public interface Render2D {
 
 	public Object loadImage(String resource, int x, int y, int width, int height);
 
-	/* Loads a set of frames from an image in book reading format (top left to bottom right) */
+	/* Loads a set of frames from an image in book reading format (bottom left to top right)
+	 * (left to right then up a row, repeated) */
 	public List<Object> loadImageSeries(String resource, int width, int height, int frame_count);
+
+	/* Loads a set of frames from an image in book reading format (top left to bottom right) */
+	public List<Object> loadImageSeriesTopLeft(String resource, int width, int height, int frame_count);
 
 	/**
 	 * Call after loading a set of files to prepare them for rendering.

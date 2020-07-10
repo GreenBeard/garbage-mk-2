@@ -555,6 +555,34 @@ public class GarbageRenderer implements Render2D {
 		return (List<Object>) (Object) handles;
 	}
 
+	@SuppressWarnings("unchecked")
+	@Override
+	public List<Object> loadImageSeriesTopLeft(String resource, int width, int height, int frame_count) {
+		MemoryStack stack = stackPush();
+
+		IntBuffer full_width = stack.mallocInt(1);
+		IntBuffer full_height = stack.mallocInt(1);
+		IntBuffer channels = stack.mallocInt(1);
+		ByteBuffer texture = ResourceLoader.LoadTexture(resource, full_width, full_height, channels);
+		STBImage.stbi_image_free(texture);
+
+		List<GarbageHandle> handles = new ArrayList<GarbageHandle>();
+		handle_loop:
+		for (int j = full_height.get(0) - height; j >= 0; j -= height) {
+			for (int i = 0; i <= full_width.get(0) - width; i += width) {
+				if (handles.size() == frame_count) {
+					break handle_loop;
+				}
+				GarbageHandle handle = genericLoadImage(resource, i, j, width, height);
+				handles.add(handle);
+			}
+		}
+
+		stack.pop();
+		/* Java is paranoid... */
+		return (List<Object>) (Object) handles;
+	}
+
 	@Override
 	public void refreshImages() {
 		MemoryStack stack = stackPush();
@@ -648,7 +676,10 @@ public class GarbageRenderer implements Render2D {
 		ByteBuffer buffer = BufferUtils.createByteBuffer(4 * img_info.width * img_info.height);
 		for (int j = 0; j < img_info.height; ++j) {
 			for (int i = 0; i < img_info.width; ++i) {
-				img_buffer.position(4 * (img_info.x + i + img_info.full_width * (img_info.y + j)));
+				/* Corrected coordinates (from top left as opposed to bottom right) */
+				int x_cc = img_info.x;
+				int y_cc = (img_info.full_height - (img_info.y + img_info.height));
+				img_buffer.position(4 * (x_cc + i + img_info.full_width * (y_cc + j)));
 				/* 4 for RGBA */
 				for (int k = 0; k < 4; ++k) {
 					buffer.put(img_buffer.get());
@@ -712,6 +743,13 @@ public class GarbageRenderer implements Render2D {
 		assert(atlas_buffer.capacity() == atlas_width * atlas_height * channel_count);
 		assert(img_buffer.capacity() == img_rect.width * img_rect.height * channel_count);
 
+		/*
+		 * The following comment isn't entirely correct. All of OpenGL has the
+		 * coordinate system with the bottom left being (0, 0). **However**, the
+		 * image loading code (and our code handling the images) treats the top left
+		 * as the (0, 0). All of the other code in this class, and (ALL of the
+		 * interface) treat the bottom left as (0, 0).
+		 */
 		/* Image buffers in LWJGL have image origin in the top left
 		 * (normally they have an origin of the bottom left).
 		 * This is accounted for by the fact that it defines the
