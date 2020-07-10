@@ -27,12 +27,12 @@ public class TextLoader implements TextManager {
 		int mid_y = 114;
 		int top_y = 230;
 		
-		int width_1 = 16;
-		int width_5 = 25;
-		int width_2 = 40;
-		int width_3 = 50;
-		int width_4 = 60;
-		int width_6 = 88;
+		int width_1 = 19;
+		int width_5 = 28;
+		int width_2 = 43;
+		int width_3 = 53;
+		int width_4 = 63;
+		int width_6 = 91;
 		char_list = new HashMap<Integer, TextCharacter>(91);
 		
 		//this part boutta get ugly: since there is no pattern to where each letter is, i need separate info for each character :'(
@@ -138,7 +138,7 @@ public class TextLoader implements TextManager {
 		char_list.put(24, temp_text);
 		
 		//9
-		temp_text = new TextCharacter(57, 351, bot_y, width_3);
+		temp_text = new TextCharacter(57, 462, bot_y, width_3);
 		char_list.put(25, temp_text);
 		
 		//A
@@ -154,7 +154,7 @@ public class TextLoader implements TextManager {
 		char_list.put(35, temp_text);
 		
 		//D
-		temp_text = new TextCharacter(68, 0, mid_y, width_3);
+		temp_text = new TextCharacter(68, 164, mid_y, width_3);
 		char_list.put(36, temp_text);
 		
 		//E
@@ -302,7 +302,7 @@ public class TextLoader implements TextManager {
 		char_list.put(78, temp_text);
 		
 		//o
-		temp_text = new TextCharacter(111, 719, top_y, width_3);
+		temp_text = new TextCharacter(111, 719, top_y, width_4);
 		char_list.put(79, temp_text);
 		
 		//p
@@ -369,22 +369,24 @@ public class TextLoader implements TextManager {
 		
 		for(i=0;i<text.length();i++)
 		{
+			
+
+			renderer.batchImageScreenScaled(char_list.get(text.charAt(i) - 32).fontImage, 
+											2, 
+											(x+curr_width) /  (float) window_width.get(0), 
+											(y-curr_height) / (float) window_height.get(0), 
+											(char_list.get(text.charAt(i) - 32).width * size) / window_width.get(0), 
+											(char_list.get(text.charAt(i) - 32).height * size) / window_height.get(0)
+											);
 			curr_width += char_list.get(text.charAt(i) - 32).width * size;
 			if(curr_width >= width)
 			{
 				curr_width = 0;
-				curr_height -= char_list.get(text.charAt(i) - 32).height * size;
+				curr_height += char_list.get(text.charAt(i) - 32).height * size;
 				if(curr_height >= max_height)
 					return;
 				
 			}
-			renderer.batchImageScreenScaled(char_list.get(text.charAt(i) - 32).fontImage, 
-											2, 
-											x+curr_width, 
-											y-curr_height, 
-											(char_list.get(text.charAt(i) - 32).width * size) / (int) window_width.get(0), 
-											(char_list.get(text.charAt(i) - 32).height * size) / (int) window_height.get(0)
-											);
 		}
 		stack.pop();
 	}
@@ -399,9 +401,9 @@ public class TextLoader implements TextManager {
 	public void cleanupText()
 	{
 		int i;
-		for(i=0;i<91;i++)
+		for(TextCharacter textCharacter : char_list.values())
 		{
-			renderer.unloadImage(char_list.get(i).fontImage);
+				renderer.unloadImage(textCharacter.fontImage);
 		}
 	}
 }

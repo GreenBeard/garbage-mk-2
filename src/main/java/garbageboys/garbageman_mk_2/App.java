@@ -161,7 +161,7 @@ public class App {
 
 		renderer.renderBatchStart();
 		int title_frame;
-		text.openText("GARBAGEMAN: Trash to one man is food to another", 1f, 0, 0, 85, 100);
+
 
 		
 		if(counter == 300) {
@@ -194,6 +194,7 @@ public class App {
 		if (title_loop_complete) {
 			current_frames = title_background_frames_2;
 			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
+			text.openText("PLAY", 1.25f, 700, 475, 100, 200);
 		}
 		else {
 			current_frames = title_background_frames_1;
@@ -203,6 +204,7 @@ public class App {
 		renderer.batchImageScreenScaled(
 				current_frames.get(title_frame),
 				0, 0.0f, 0.0f, 1.0f, 1.0f);
+		text.openText("0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz !@#$%&(),.';:", .75f, 150, 500, 190, 1250);
 		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
 		renderer.renderBatchEnd();
 		counter++;
