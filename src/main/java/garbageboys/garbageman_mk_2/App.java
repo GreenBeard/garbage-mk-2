@@ -204,7 +204,7 @@ public class App {
 		renderer.batchImageScreenScaled(
 				current_frames.get(title_frame),
 				0, 0.0f, 0.0f, 1.0f, 1.0f);
-		text.openText("0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz !@#$%&(),.';:", .75f, 150, 500, 190, 1250);
+		text.openText("0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz !@#$%&(),.';:", .75f, 150, 300, 190, 1250);
 		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
 		renderer.renderBatchEnd();
 		counter++;

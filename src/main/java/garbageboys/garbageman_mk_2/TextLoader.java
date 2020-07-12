@@ -369,9 +369,7 @@ public class TextLoader implements TextManager {
 		
 		for(i=0;i<text.length();i++)
 		{
-			
-
-			renderer.batchImageScreenScaled(char_list.get(text.charAt(i) - 32).fontImage, 
+			renderer.batchImageScreenScaled(renderer.duplicateHandle(char_list.get(text.charAt(i) - 32).fontImage), 
 											2, 
 											(x+curr_width) /  (float) window_width.get(0), 
 											(y-curr_height) / (float) window_height.get(0), 
