@@ -176,7 +176,7 @@ public class RendererValidation implements Render2D {
 	}
 
 	@Override
-	public void fillEventList(List<InteractEvents> events) {
+	public void fillEventList(List<InteractEvent> events) {
 		if (!batch_mode) {
 			actual_renderer.fillEventList(events);
 		} else {

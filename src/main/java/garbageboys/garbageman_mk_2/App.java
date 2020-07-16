@@ -21,9 +21,7 @@ public class App {
 	static Render2D renderer;
 	TextManager text;
 	SoundManager soundManager;
-	final String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
-	final String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
-	final String CHEERY = "/assets/Sounds/Songs/Cheery.wav";
+	Screen currentScreen;
 	final String ICON0 = "/assets/Icons/Garbagecan0.png";
 	final String ICON1 = "/assets/Icons/Garbagecan1.png";
 	final String ICON2 = "/assets/Icons/Garbagecan2.png";
@@ -52,13 +50,13 @@ public class App {
 		soundManager = new DefaultSoundManager();
 		
 		
-		soundManager.loadSound(STARTUP_SOUND, SoundManager.SoundTypes.Effects);
-		soundManager.loadSound(TITLE_THEME, SoundManager.SoundTypes.Music);
-		soundManager.loadSound(CHEERY, SoundManager.SoundTypes.Music);
+		soundManager.loadSound(SoundManager.STARTUP_SOUND, SoundManager.SoundTypes.Effects);
+		soundManager.loadSound(SoundManager.TITLE_THEME, SoundManager.SoundTypes.Music);
+		soundManager.loadSound(SoundManager.CHEERY, SoundManager.SoundTypes.Music);
 		soundManager.setMasterVolume(-10f);
 		soundManager.setTypeVolume(0f, SoundTypes.Effects, true);
 		soundManager.setTypeVolume(10f, SoundTypes.Music, true);
-		soundManager.playSound(STARTUP_SOUND);
+		soundManager.playSound(SoundManager.STARTUP_SOUND);
 		
 
 		// Setup a key callback. It will be called every time a key is pressed, repeated or released.
@@ -67,7 +65,9 @@ public class App {
 				glfwSetWindowShouldClose(window, true); // We will detect this in the rendering loop
 			}
 			if (key == GLFW_KEY_TAB && action == GLFW_RELEASE) {
-				
+				currentScreen.unloadAssets();
+				currentScreen = new OptionsScreen();
+				screenInit();
 			}
 		});
 	}
@@ -78,15 +78,14 @@ public class App {
 		GarbageRenderer real_renderer = (GarbageRenderer) ((RendererValidation) renderer).actual_renderer;
 		real_renderer.setRenderMode(GarbageRenderer.RenderMode.VBLANK_SYNC);
 		real_renderer.setIcon(ICON0);
-		
 		text = new TextLoader();
+		currentScreen = new TitleScreen();
+		screenInit();
 		//example_render_init();
-		title_screen_init();
-
 		//Random random = new Random(System.nanoTime());
 		boolean sleep = true;//random.nextBoolean();
 		while (!glfwWindowShouldClose(renderer.getWindowID())) {
-			long start = System.nanoTime();
+			//long start = System.nanoTime();
 
 			try {
 				long sleep_time;
@@ -98,13 +97,13 @@ public class App {
 				Thread.sleep(sleep_time);
 			} catch (InterruptedException e) { e.printStackTrace(); }
 			glfwPollEvents();
+			renderScreen(frame);
 
-			long render_start = System.nanoTime();
+			//long render_start = System.nanoTime();
 			//example_render(frame);
-			title_screen_render(frame);
-			long render_end = System.nanoTime();
+			//long render_end = System.nanoTime();
 
-			long end = System.nanoTime();
+			//long end = System.nanoTime();
 			//System.out.printf("Total Frame time %.2f ms Render Frame time %.2f ms\n",
 			//		(end - start) / (1000f * 1000f),
 			//		(render_end - render_start) / (1000f * 1000f));
@@ -112,9 +111,15 @@ public class App {
 		}
 
 		//example_render_cleanup();
-		title_screen_cleanup();
+		cleanup();
 		
 		System.out.println("Sleep was " + sleep);
+	}
+
+	private void screenInit() {
+		currentScreen.init(renderer, this, soundManager, text);
+		currentScreen.loadAssets();
+		renderer.refreshImages();
 	}
 
 	Object play_button;
@@ -136,79 +141,15 @@ public class App {
 	int circle_y = 0;
 	
 	int counter = 0;
-	
-	private void title_screen_init() {
-		play_button = renderer.loadImage("/assets/Buttons/play.png");
-		title_background_frames_1 = renderer.loadImageSeriesTopLeft("/assets/Screens/mainTitle.png", 384, 216, 23);
-		title_background_frames_2 = renderer.loadImageSeriesTopLeft("/assets/Screens/mainTitle2.png", 384, 216, 10);
-		renderer.refreshImages();
-	}
 
-	private void title_screen_cleanup() {
-		renderer.unloadImage(play_button);
+	private void cleanup() {
 		soundManager.unloadAllSounds();
-		for (Object obj : title_background_frames_1) {
-			renderer.unloadImage(obj);
-		}
-		for (Object obj : title_background_frames_2) {
-			renderer.unloadImage(obj);
-		}
+		currentScreen.unloadAssets();
 		text.cleanupText();
 	}
 
-	private void title_screen_render(int frame) {
-		MemoryStack stack = MemoryStack.stackPush();
-
-		renderer.renderBatchStart();
-		int title_frame;
-
-
-		
-		if(counter == 300) {
-			renderer.setIcon(ICON1);
-		}
-		if(counter == 600) {
-			renderer.setIcon(ICON2);
-		}
-		if(counter == 900) {
-			renderer.setIcon(ICON3);
-		}
-		if(counter == 1200) {
-			renderer.setIcon(ICON4);
-		}
-		if(counter == 1500) {
-			renderer.setIcon(ICON0);
-			counter = 0;
-		}
-		
-		if (frame == title_background_frames_1.size() * 5) {
-			title_loop_complete = true;
-			soundManager.loopSound(TITLE_THEME);
-		}
-		if (frame == title_background_frames_1.size() * 5 + 100) {
-			
-//			soundManager.fadeOutSong(TITLE_THEME, 3000, -.6f);
-//			soundManager.fadeInSong(CHEERY, SoundTypes.Music, 3000, .6f, true);
-		}
-		List<Object> current_frames;
-		if (title_loop_complete) {
-			current_frames = title_background_frames_2;
-			renderer.batchImageScreenScaled(play_button, 1, 0.40f, 0.508f, 0.23f, 0.15f);
-			text.openText("PLAY", 1.25f, 700, 475, 100, 200);
-		}
-		else {
-			current_frames = title_background_frames_1;
-		}
-		
-		title_frame = (frame / 5) % current_frames.size();
-		renderer.batchImageScreenScaled(
-				current_frames.get(title_frame),
-				0, 0.0f, 0.0f, 1.0f, 1.0f);
-		text.openText("0123456789 ABCDEFGHIJKLMNOPQRSTUVWXYZ abcdefghijklmnopqrstuvwxyz !@#$%&(),.';:", .75f, 150, 300, 190, 1250);
-		//renderer.batchImageScaled(title_background_frames.get(title_frame), 0, 0, 0, 384 * 8, 216 * 8);
-		renderer.renderBatchEnd();
-		counter++;
-		stack.pop();
+	private void renderScreen(int frame) {
+		currentScreen.renderFrame(frame);
 	}
 
 	private void example_render(int frame) {

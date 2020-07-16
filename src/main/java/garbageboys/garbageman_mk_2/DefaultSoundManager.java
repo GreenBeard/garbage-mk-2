@@ -52,7 +52,7 @@ public class DefaultSoundManager implements SoundManager {
 	}
 
 	/**
-	 * Currently has no use. Might one day. Feel free to call it after you load a sound.
+	 * Currently has no use. Might one day. Feel free to call it after you load a sound. Or don't.
 	 */
 	@Override
 	public void refreshSounds() {

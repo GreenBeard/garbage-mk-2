@@ -3,6 +3,10 @@ package garbageboys.garbageman_mk_2;
 import java.util.List;
 
 public interface SoundManager {
+	
+	final public static String STARTUP_SOUND = "/assets/Sounds/SoundEffects/Startup.wav";
+	final public static String TITLE_THEME = "/assets/Sounds/Songs/Themey.wav";
+	final public static String CHEERY = "/assets/Sounds/Songs/Cheery.wav";
 
 	enum SoundTypes {
 		Music,

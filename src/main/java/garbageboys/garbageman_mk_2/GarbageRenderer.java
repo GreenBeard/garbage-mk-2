@@ -50,7 +50,7 @@ public class GarbageRenderer implements Render2D {
 
 	private class AtlasInfo {
 		/* A texture is referred to through an ID and is bound to a texture unit.
-		 * It seems redudant to me, but that is just how openGL was made. I wonder if a texture may be
+		 * It seems redundant to me, but that is just how openGL was made. I wonder if a texture may be
 		 * bound, and filled with data then rebound later to a texture unit if it wasn't deleted?
 		 */
 		public int texture_id;
@@ -133,10 +133,10 @@ public class GarbageRenderer implements Render2D {
 	private ArrayList<GarbageHandle> image_handles;
 
 	private Lock unhandled_events_lock;
-	private ArrayList<InteractEvents> unhandled_events;
+	private ArrayList<InteractEvent> unhandled_events;
 
 	@Override
-	public void fillEventList(List<InteractEvents> events) {
+	public void fillEventList(List<InteractEvent> events) {
 		unhandled_events_lock.lock();
 		try {
 			while (unhandled_events.size() > 0) {
@@ -205,7 +205,7 @@ public class GarbageRenderer implements Render2D {
 		glfwGetWindowSize(window, window_width, window_height);
 		unhandled_events_lock.lock();
 		try {
-			InteractEvents event = new InteractEvents();
+			InteractEvent event = new InteractEvent();
 			event.handle = null;
 			event.mouse_x = (int) x_pos.get(0);
 			event.mouse_y = window_height.get(0) - (int) y_pos.get(0);

@@ -92,7 +92,7 @@ public interface Render2D {
 		LEFT_MOUSE_DOWN, LEFT_MOUSE_UP, RIGHT_MOUSE_DOWN, RIGHT_MOUSE_UP, SCROLL_UP, SCROLL_DOWN
 	}
 
-	public class InteractEvents {
+	public class InteractEvent {
 		/* null if nothing matched! */
 		public Object handle;
 		public InteractEventType type;
@@ -105,7 +105,7 @@ public interface Render2D {
 	 * Adds unhandled events to the provided list. (This events are then considered handled.)
 	 * @param events - list to add events to
 	 */
-	public void fillEventList(List<InteractEvents> events);
+	public void fillEventList(List<InteractEvent> events);
 	
 	public void setIcon(String resource);
 
