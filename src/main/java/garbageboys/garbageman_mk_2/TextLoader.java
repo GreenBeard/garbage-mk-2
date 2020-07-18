@@ -33,10 +33,11 @@ public class TextLoader implements TextManager {
 		int width_5 = 28;
 		int width_2 = 43;
 		int width_3 = 53;
-		int width_4 = 63;
+		int width_4 = 60;
 		int width_6 = 91;
 		duplicatedHandles = new ArrayList<Object>();
 		char_list = new HashMap<Integer, TextCharacter>(91);
+		renderer = App.get_renderer();
 		//this part boutta get ugly: since there is no pattern to where each letter is, i need separate info for each character :'(
 		//SUPPORTED CHARACTERS:
 		//ABCDEFGHIJKLMNOPQRSTUVWXYZ 
@@ -44,7 +45,7 @@ public class TextLoader implements TextManager {
 		//0123456789 ()!@#$%&.,?;:'
 
 		//SPACE
-		temp_text = new TextCharacter(32, 1200, bot_y-10, width_3);
+		temp_text = new TextCharacter(32, 1200, bot_y-10, width_2);
 		char_list.put(0, temp_text);
 		
 		//!
@@ -56,7 +57,7 @@ public class TextLoader implements TextManager {
 		char_list.put(3, temp_text);
 		
 		//$
-		temp_text = new TextCharacter(36, 775, bot_y-10, width_2);
+		temp_text = new TextCharacter(36, 775, bot_y, width_2);
 		char_list.put(4, temp_text);
 		
 		//%
@@ -244,7 +245,7 @@ public class TextLoader implements TextManager {
 		char_list.put(57, temp_text);
 		
 		//Z
-		temp_text = new TextCharacter(90, 1404, mid_y, width_2);
+		temp_text = new TextCharacter(90, 1404, mid_y, width_2-7);
 		char_list.put(58, temp_text);
 		
 		//a
@@ -268,7 +269,7 @@ public class TextLoader implements TextManager {
 		char_list.put(69, temp_text);
 		
 		//f
-		temp_text = new TextCharacter(102, 283, top_y, width_5+10);
+		temp_text = new TextCharacter(102, 283, top_y, width_5+8);
 		char_list.put(70, temp_text);
 		
 		//g
@@ -276,7 +277,7 @@ public class TextLoader implements TextManager {
 		char_list.put(71, temp_text);
 		
 		//h
-		temp_text = new TextCharacter(104, 377, top_y, width_2);
+		temp_text = new TextCharacter(104, 377, top_y, width_3);
 		char_list.put(72, temp_text);
 		
 		//i
@@ -359,13 +360,16 @@ public class TextLoader implements TextManager {
 	public TextObject openText(String text, float size, int x, int y, int max_height, int width) {
 
 		TextObject temp;
+		Object duplicatedHandle;
 		int i;
 		
 		temp = new TextObject(text, size, x, y, max_height, width);
-
+		
+		
 		for(i=0;i<temp.text.length();i++)
 		{
-			duplicatedHandles.add(i, (renderer.duplicateHandle(char_list.get(temp.text.charAt(i) - 32).fontImage)));
+			duplicatedHandle = renderer.duplicateHandle(char_list.get(temp.text.charAt(i) - 32).fontImage);
+			duplicatedHandles.add(i, duplicatedHandle);
 		}
 		
 		return temp;
@@ -378,9 +382,7 @@ public class TextLoader implements TextManager {
 		int i; 
 		int curr_width = 0;
 		int curr_height = 0;
-		renderer = App.get_renderer();
 		
-	
 		MemoryStack stack = MemoryStack.stackPush();
 		IntBuffer window_width = stack.mallocInt(1);
 		IntBuffer window_height = stack.mallocInt(1);

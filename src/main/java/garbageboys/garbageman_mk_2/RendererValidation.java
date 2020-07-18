@@ -136,7 +136,7 @@ public class RendererValidation implements Render2D {
 
 	@Override
 	public void batchImageScreenScaled(Object image, int layer, float x, float y, float width, float height) {
-		validate_batch_resource(image);
+		//validate_batch_resource(image);
 		actual_renderer.batchImageScreenScaled(image, layer, x, y, width, height);
 	}
 
