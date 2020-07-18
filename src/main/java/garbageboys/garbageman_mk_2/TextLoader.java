@@ -7,7 +7,8 @@ import static org.lwjgl.glfw.GLFW.glfwGetWindowSize;
 
 import java.nio.IntBuffer;
 import java.util.HashMap;
-
+import java.util.List;
+import java.util.ArrayList;
 import org.lwjgl.system.MemoryStack;
 
 /**
@@ -17,6 +18,7 @@ import org.lwjgl.system.MemoryStack;
 
 public class TextLoader implements TextManager {
 	HashMap<Integer, TextCharacter> char_list;
+	List<Object> duplicatedHandles;
 	TextCharacter temp_text;
 	Render2D renderer;
 	int i;
@@ -33,13 +35,13 @@ public class TextLoader implements TextManager {
 		int width_3 = 53;
 		int width_4 = 63;
 		int width_6 = 91;
+		duplicatedHandles = new ArrayList<Object>();
 		char_list = new HashMap<Integer, TextCharacter>(91);
-		
 		//this part boutta get ugly: since there is no pattern to where each letter is, i need separate info for each character :'(
 		//SUPPORTED CHARACTERS:
 		//ABCDEFGHIJKLMNOPQRSTUVWXYZ 
 		//abcdefghijklmnopqrstuvwxyz
-		//0123456789 ()!@#$%&.,?;:
+		//0123456789 ()!@#$%&.,?;:'
 
 		//SPACE
 		temp_text = new TextCharacter(32, 1200, bot_y-10, width_3);
@@ -353,52 +355,73 @@ public class TextLoader implements TextManager {
 	
 	
 	
-	
 	@Override
-	public void openText(String text, float size, int x, int y, int max_height, int width) {
+	public TextObject openText(String text, float size, int x, int y, int max_height, int width) {
+
+		TextObject temp;
+		int i;
+		
+		temp = new TextObject(text, size, x, y, max_height, width);
+
+		for(i=0;i<temp.text.length();i++)
+		{
+			duplicatedHandles.add(i, (renderer.duplicateHandle(char_list.get(temp.text.charAt(i) - 32).fontImage)));
+		}
+		
+		return temp;
+	}
+
+	@Override
+	public void renderText(TextObject text_object)
+	{
 		
 		int i; 
 		int curr_width = 0;
 		int curr_height = 0;
 		renderer = App.get_renderer();
 		
+	
 		MemoryStack stack = MemoryStack.stackPush();
 		IntBuffer window_width = stack.mallocInt(1);
 		IntBuffer window_height = stack.mallocInt(1);
 		glfwGetWindowSize(renderer.getWindowID(), window_width, window_height);//gets window size
 		
-		for(i=0;i<text.length();i++)
+		for(i=0;i<text_object.text.length();i++)
 		{
-			renderer.batchImageScreenScaled(renderer.duplicateHandle(char_list.get(text.charAt(i) - 32).fontImage), 
+			renderer.batchImageScreenScaled(duplicatedHandles.get(i), 
 											2, 
-											(x+curr_width) /  (float) window_width.get(0), 
-											(y-curr_height) / (float) window_height.get(0), 
-											(char_list.get(text.charAt(i) - 32).width * size) / window_width.get(0), 
-											(char_list.get(text.charAt(i) - 32).height * size) / window_height.get(0)
+											(text_object.x + curr_width) /  (float) window_width.get(0), 
+											(text_object.y - curr_height) / (float) window_height.get(0), 
+											(char_list.get(text_object.text.charAt(i) - 32).width * text_object.size) / window_width.get(0), 
+											(char_list.get(text_object.text.charAt(i) - 32).height * text_object.size) / window_height.get(0)
 											);
-			curr_width += char_list.get(text.charAt(i) - 32).width * size;
-			if(curr_width >= width)
+			
+			curr_width += char_list.get(text_object.text.charAt(i) - 32).width * text_object.size;
+			if(curr_width >= text_object.width)
 			{
 				curr_width = 0;
-				curr_height += char_list.get(text.charAt(i) - 32).height * size;
-				if(curr_height >= max_height)
+				curr_height += char_list.get(text_object.text.charAt(i) - 32).height * text_object.size;
+				if(curr_height >= text_object.max_height)
 					return;
 				
 			}
 		}
 		stack.pop();
 	}
-
+	
 	@Override
-	public void closeText(String text) {
+	public void closeText(TextObject text_object) {
 		// TODO Auto-generated method stub
-
+		int i;
+		for(i=0;i<text_object.text.length();i++)
+		{
+			renderer.deduplicateHandle(duplicatedHandles.get(i));
+		}
 	}
 	
 	@Override
 	public void cleanupText()
 	{
-		int i;
 		for(TextCharacter textCharacter : char_list.values())
 		{
 				renderer.unloadImage(textCharacter.fontImage);

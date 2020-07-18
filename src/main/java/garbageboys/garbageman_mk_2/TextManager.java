@@ -12,7 +12,7 @@ public interface TextManager {
 	 * @param x,y - top left corner
 	 * @return true on success
 	 */
-	public void openText(String text, 
+	public TextObject openText(String text, 
 						float size,
 						int x,
 						int y,
@@ -20,7 +20,9 @@ public interface TextManager {
 						int width 
 						);
 	
-	public void closeText(String text);
+	public void closeText(TextObject text_object);
+	
+	public void renderText(TextObject text_object);
 	
 	public void cleanupText();
 

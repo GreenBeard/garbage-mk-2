@@ -1,6 +1,7 @@
 package garbageboys.garbageman_mk_2;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 
 import org.lwjgl.system.MemoryStack;
@@ -13,6 +14,7 @@ public class TitleScreen implements Screen {
 	private TextManager text;
 	
 	int counter = 0;
+	int i = 0;
 	
 	final String ICON0 = "/assets/Icons/Garbagecan0.png";
 	final String ICON1 = "/assets/Icons/Garbagecan1.png";
@@ -28,6 +30,9 @@ public class TitleScreen implements Screen {
 	
 	List<Object> loadedItems;
 	
+	List<TextObject> text_list;
+	TextObject temp_text_object;
+	
 	@Override
 	public void init(Render2D renderer, App app, SoundManager soundManager, TextManager text) {
 		this.renderer = renderer;
@@ -35,6 +40,7 @@ public class TitleScreen implements Screen {
 		this.soundManager = soundManager;
 		this.text = text;
 		loadedItems = new ArrayList<Object>();
+		text_list = new ArrayList<TextObject>();
 	}
 
 	@Override
@@ -45,6 +51,10 @@ public class TitleScreen implements Screen {
 		loadedItems.add(play_button);
 		loadedItems.addAll(title_background_frames_1);
 		loadedItems.addAll(title_background_frames_2);
+		temp_text_object = text.openText("GARBAGEMAN: One man's trash is another's food", .5f, 150, 150, 85, 100);
+		text_list.add(temp_text_object);
+		temp_text_object = text.openText("PLAY", 1.25f, 700, 475, 100, 200);
+		text_list.add(temp_text_object);
 	}
 
 	@Override
@@ -54,7 +64,9 @@ public class TitleScreen implements Screen {
 
 		renderer.renderBatchStart();
 		
-		//text.openText("GARBAGEMAN: One mans trash is anothers treasure", 1f, 0, 0, 85, 100);
+		for(i = 0; i < text_list.size(); i++)
+			text.renderText(text_list.get(i));
+
 		int title_frame;
 
 		if(counter == 300) {
@@ -76,7 +88,6 @@ public class TitleScreen implements Screen {
 		
 		if (frame == title_background_frames_1.size() * 5) {
 			title_loop_complete = true;
-			//text.openText("PLAY", 1.25f, 700, 475, 100, 200);
 			soundManager.loopSound(TITLE_THEME);
 		}
 		if (frame == title_background_frames_1.size() * 5 + 100) {
@@ -114,5 +125,7 @@ public class TitleScreen implements Screen {
 	@Override
 	public void closeScreen() {
 		unloadAssets();
+		for(i = 0; i < text_list.size(); i++)
+			text.closeText(text_list.get(i));
 	}
 }
