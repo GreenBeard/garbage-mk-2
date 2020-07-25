@@ -81,7 +81,7 @@ public class TextLoader implements TextManager {
 		char_list.put(9, temp_text);
 		
 		//,
-		temp_text = new TextCharacter(44, 1027, bot_y-10, width_1);
+		temp_text = new TextCharacter(44, 1027, bot_y, width_1);
 		char_list.put(12, temp_text);
 		
 		//.
@@ -89,7 +89,7 @@ public class TextLoader implements TextManager {
 		char_list.put(14, temp_text);
 		
 		//:
-		temp_text = new TextCharacter(58, 1098, bot_y, width_1);
+		temp_text = new TextCharacter(58, 1098, bot_y-10, width_1);
 		char_list.put(26, temp_text);
 		
 		//;

@@ -52,11 +52,13 @@ public class TitleScreen implements Screen {
 		loadedItems.addAll(title_background_frames_1);
 		loadedItems.addAll(title_background_frames_2);
 		
+		
+		temp_text_object = text.openText("GARBAGEMAN: One man's trash is another's food", .5f, 550, 675, 86, 650);
+		text_list.add(temp_text_object);
 		temp_text_object = text.openText("PLAY", 1.25f, 700, 475, 100, 200);
 		text_list.add(temp_text_object);
 
-		temp_text_object = text.openText("GARBAGEMAN: One man's trash is another's food", .5f, 550, 675, 86, 650);
-		text_list.add(temp_text_object);
+
 	}
 
 	@Override
