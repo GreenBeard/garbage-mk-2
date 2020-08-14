@@ -12,6 +12,7 @@ public interface TextManager {
 	 * @param x,y - top left corner
 	 * @return true on success
 	 */
+	
 	public TextObject openText(String text, 
 						float size,
 						int x,

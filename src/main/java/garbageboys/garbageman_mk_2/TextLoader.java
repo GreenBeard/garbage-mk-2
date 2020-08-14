@@ -35,7 +35,9 @@ public class TextLoader implements TextManager {
 		int width_3 = 53;
 		int width_4 = 60;
 		int width_6 = 91;
+		
 		duplicatedHandles = new ArrayList<Object>();
+		
 		char_list = new HashMap<Integer, TextCharacter>(91);
 		renderer = App.get_renderer();
 		//this part boutta get ugly: since there is no pattern to where each letter is, i need separate info for each character :'(
@@ -353,8 +355,7 @@ public class TextLoader implements TextManager {
 		char_list.put(90, temp_text);
 		//PHEW NOW I KNOW MY ABC'S
 	}
-	
-	
+
 	
 	@Override
 	public TextObject openText(String text, float size, int x, int y, int max_height, int width) {
@@ -363,18 +364,19 @@ public class TextLoader implements TextManager {
 		Object duplicatedHandle;
 		int i;
 		
-		temp = new TextObject(text, size, x, y, max_height, width);
+		temp = new TextObject(text, size, x, y, max_height, width, duplicatedHandles.size());
 		
 		
 		for(i=0;i<temp.text.length();i++)
 		{
 			duplicatedHandle = renderer.duplicateHandle(char_list.get(temp.text.charAt(i) - 32).fontImage);
-			duplicatedHandles.add(i, duplicatedHandle);
+			duplicatedHandles.add(duplicatedHandle);
 		}
 		
 		return temp;
 	}
 
+	
 	@Override
 	public void renderText(TextObject text_object)
 	{
@@ -388,9 +390,13 @@ public class TextLoader implements TextManager {
 		IntBuffer window_height = stack.mallocInt(1);
 		glfwGetWindowSize(renderer.getWindowID(), window_width, window_height);//gets window size
 		
-		for(i=0;i<text_object.text.length();i++)
+		for(				
+				i = 0;
+				i < text_object.text.length();
+				i++
+			)
 		{
-			renderer.batchImageScreenScaled(duplicatedHandles.get(i), 
+			renderer.batchImageScreenScaled(duplicatedHandles.get(i + text_object.dupe_i), 
 											2, 
 											(text_object.x + curr_width) /  (float) window_width.get(0), 
 											(text_object.y - curr_height) / (float) window_height.get(0), 
@@ -399,13 +405,13 @@ public class TextLoader implements TextManager {
 											);
 			
 			curr_width += char_list.get(text_object.text.charAt(i) - 32).width * text_object.size;
+			
 			if(curr_width >= text_object.width)
 			{
 				curr_width = 0;
 				curr_height += char_list.get(text_object.text.charAt(i) - 32).height * text_object.size;
 				if(curr_height >= text_object.max_height)
-					return;
-				
+					return;	
 			}
 		}
 		stack.pop();
@@ -415,7 +421,11 @@ public class TextLoader implements TextManager {
 	public void closeText(TextObject text_object) {
 		// TODO Auto-generated method stub
 		int i;
-		for(i=0;i<text_object.text.length();i++)
+		for(	
+				i = text_object.dupe_i;
+				i < (text_object.dupe_i + text_object.text.length());
+				i++
+			)
 		{
 			renderer.deduplicateHandle(duplicatedHandles.get(i));
 		}
