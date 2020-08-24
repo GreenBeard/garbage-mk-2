@@ -40,7 +40,7 @@ public class TextLoader implements TextManager {
 		
 		char_list = new HashMap<Integer, TextCharacter>(91);
 		renderer = App.get_renderer();
-		//this part boutta get ugly: since there is no pattern to where each letter is, i need separate info for each character :'(
+		//this part is ugly: since there is no pattern to where each letter is, I need separate info for each character :'(
 		//SUPPORTED CHARACTERS:
 		//ABCDEFGHIJKLMNOPQRSTUVWXYZ 
 		//abcdefghijklmnopqrstuvwxyz
@@ -358,18 +358,18 @@ public class TextLoader implements TextManager {
 
 	
 	@Override
-	public TextObject openText(String text, float size, int x, int y, int max_height, int width) {
+	public TextObject openText(String text, float size, int x, int y, int max_height, int width) {//"opens" given string on screen with said coordinates and size
 
 		TextObject temp;
 		Object duplicatedHandle;
 		int i;
 		
-		temp = new TextObject(text, size, x, y, max_height, width, duplicatedHandles.size());
+		temp = new TextObject(text, size, x, y, max_height, width, duplicatedHandles.size());//make new text object for text that will be opened
 		
 		
 		for(i=0;i<temp.text.length();i++)
 		{
-			duplicatedHandle = renderer.duplicateHandle(char_list.get(temp.text.charAt(i) - 32).fontImage);
+			duplicatedHandle = renderer.duplicateHandle(char_list.get(temp.text.charAt(i) - 32).fontImage);//must duplicate handles to allow repeat characters
 			duplicatedHandles.add(duplicatedHandle);
 		}
 		
@@ -382,8 +382,8 @@ public class TextLoader implements TextManager {
 	{
 		
 		int i; 
-		int curr_width = 0;
-		int curr_height = 0;
+		int curr_width = 0;//keeps track of location of characters, so each new character knows where to go
+		int curr_height = 0;// ""
 		
 		MemoryStack stack = MemoryStack.stackPush();
 		IntBuffer window_width = stack.mallocInt(1);
@@ -402,13 +402,13 @@ public class TextLoader implements TextManager {
 											(text_object.y - curr_height) / (float) window_height.get(0), 
 											(char_list.get(text_object.text.charAt(i) - 32).width * text_object.size) / window_width.get(0), 
 											(char_list.get(text_object.text.charAt(i) - 32).height * text_object.size) / window_height.get(0)
-											);
+											);//places text images on screen
 			
 			curr_width += char_list.get(text_object.text.charAt(i) - 32).width * text_object.size;
 			
-			if(curr_width >= text_object.width)
+			if(curr_width >= text_object.width)//if reached end of the line
 			{
-				curr_width = 0;
+				curr_width = 0;//new line
 				curr_height += char_list.get(text_object.text.charAt(i) - 32).height * text_object.size;
 				if(curr_height >= text_object.max_height)
 					return;	
@@ -418,7 +418,7 @@ public class TextLoader implements TextManager {
 	}
 	
 	@Override
-	public void closeText(TextObject text_object) {
+	public void closeText(TextObject text_object) {//removes text from screen
 		// TODO Auto-generated method stub
 		int i;
 		for(	
@@ -432,7 +432,7 @@ public class TextLoader implements TextManager {
 	}
 	
 	@Override
-	public void cleanupText()
+	public void cleanupText()//unloads all loaded images, needs to happen on close
 	{
 		for(TextCharacter textCharacter : char_list.values())
 		{

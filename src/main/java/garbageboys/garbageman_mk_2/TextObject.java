@@ -2,7 +2,7 @@ package garbageboys.garbageman_mk_2;
 
 import java.util.HashMap;
 
-public class TextObject {
+public class TextObject {//provides a class for each opened text in-game
 	String text; 
 	float size;
 	int x;
@@ -19,6 +19,6 @@ public class TextObject {
 		y = init_y;
 		max_height = init_max_height;
 		width = init_width;
-		dupe_i = init_dupe_i;
+		dupe_i = init_dupe_i;//this is needed to know the beginning index of each separate opened text, since their handles are all duplicated in the same list 
 	}	
 }

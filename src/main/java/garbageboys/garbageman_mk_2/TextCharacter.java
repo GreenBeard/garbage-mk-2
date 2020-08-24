@@ -1,6 +1,6 @@
 package garbageboys.garbageman_mk_2;
 
-public class TextCharacter {
+public class TextCharacter {//provides a class for each separate character on fontImage
 	int ascii_char;
 	int x;
 	int y;
