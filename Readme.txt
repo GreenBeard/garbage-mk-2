@@ -9,7 +9,7 @@ Hit Next then Finish.
 LICENSING NOTES:
 All images made by Silas Kidd-Myers and Brett Zonick.
 All music (in the resources/assets/Sounds/Songs folder) made by Silas Kidd-Myers.
-Sound effects (in the resources/assets/Sounds/SoundEffects folder) made by Silas Kidd-Meyers, Brett Zonick, or sourced 
+Sound effects (in the resources/assets/Sounds/SoundEffects folder) made by Silas Kidd-Myers, Brett Zonick, or sourced 
 from soundjay.com.
 
 List of sound clips from soundjay.com:
